@@ -115,21 +115,32 @@
 
     <canvas id="canvas" class="hidden"></canvas>
 
-    <script>
+   
+   <script>
         const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwBBbtIE7WwUG2IgaXvXU_Z42vxOngXDkhkhG6ADld4jChcBeerWXGZkezLChBkLwIs/exec'; // ⚠️ สำคัญ: แก้ไข URL ตรงนี้
         let currentMemberData = {};
         let videoStream = null;
         let scanInterval = null;
         let isProcessing = false;
 
+        /**
+         * ฟังก์ชันสลับหน้าจอที่แก้ไขใหม่
+         * @param {string} screenId - ID ของ div หน้าจอที่ต้องการแสดง
+         */
         function showScreen(screenId) {
+            // ซ่อนทุกหน้าจอ .screen ที่อยู่ใน <main>
             document.querySelectorAll('main > .screen').forEach(screen => {
-                screen.classList.remove('active');
                 screen.classList.add('hidden');
+                screen.classList.remove('flex');
             });
+
+            // แสดงเฉพาะหน้าจอเป้าหมาย
             const activeScreen = document.getElementById(screenId);
-            activeScreen.classList.remove('hidden');
-            activeScreen.classList.add('active', 'flex');
+            if (activeScreen) {
+                activeScreen.classList.remove('hidden');
+                activeScreen.classList.add('flex');
+            }
+            
             hideMessage();
         }
 
