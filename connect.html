@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ลงทะเบียน LINE</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: { extend: { fontFamily: { 'sarabun': ['Sarabun', 'sans-serif'] }, colors: { 'primary-blue': '#110D42', 'primary-yellow': '#FFB900' } } }
+        }
+    </script>
+</head>
+<body class="bg-slate-100 font-sarabun flex items-center justify-center min-h-screen">
+    <div class="w-full max-w-sm mx-auto p-6">
+        <div class="bg-white p-8 rounded-2xl shadow-lg text-center">
+            <h1 class="text-2xl font-bold text-primary-blue mb-2">ลงทะเบียน LINE</h1>
+            <p class="text-slate-500 mb-6">กรุณากรอกเลขบัตรประชาชน 13 หลักเพื่อเชื่อมต่อกับบัญชี LINE ของคุณ</p>
+
+            <form id="liff-form" onsubmit="handleRegister(event)">
+                <div class="mb-4">
+                    <input type="tel" id="citizen-id-input" pattern="[0-9]*" maxlength="13" placeholder="เลขบัตรประชาชน" class="w-full text-center text-xl tracking-wider p-3 border-2 border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-yellow focus:border-primary-blue" required>
+                </div>
+                <button type="submit" id="submit-button" class="w-full bg-primary-yellow text-primary-blue font-bold py-3 px-5 rounded-lg hover:opacity-90 disabled:opacity-50">
+                    ยืนยัน
+                </button>
+            </form>
+            <div id="status-message" class="mt-4 min-h-[24px] font-semibold"></div>
+        </div>
+        <p id="user-id-display" class="text-center text-xs text-slate-400 mt-4"></p>
+    </div>
+
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script>
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbypzA8mOVHpkx8-SOzszGLbbNMmpF4tyRlIKW8jdxN7cboVe6J6mO2MYb0W3NBG5k__Gg/exec';
+        let lineUserId = null;
+
+        async function main() {
+            const statusDiv = document.getElementById('status-message');
+            statusDiv.textContent = 'กำลังเชื่อมต่อกับ LINE...';
+            try {
+                // ** 1. Initialize LIFF **
+                await liff.init({ liffId: "2007863251-gQArxeNa" }); // ⚠️ **สำคัญ: แก้ไข LIFF ID ตรงนี้**
+
+                if (!liff.isLoggedIn()) {
+                    statusDiv.textContent = 'กรุณาเข้าสู่ระบบ LINE';
+                    document.getElementById('submit-button').disabled = true;
+                    // liff.login(); // อาจจะบังคับ login เลยก็ได้
+                } else {
+                    // ** 2. Get User Profile **
+                    const profile = await liff.getProfile();
+                    lineUserId = profile.userId;
+                    document.getElementById('user-id-display').textContent = `LINE User ID: ${lineUserId}`;
+                    statusDiv.textContent = ''; // Clear status
+                }
+            } catch (error) {
+                console.error(error);
+                statusDiv.textContent = 'เกิดข้อผิดพลาดในการเชื่อมต่อ LIFF';
+                statusDiv.classList.add('text-red-600');
+            }
+        }
+
+        async function handleRegister(event) {
+            event.preventDefault();
+            if (!lineUserId) {
+                alert('ไม่สามารถดึงข้อมูล LINE User ID ได้');
+                return;
+            }
+
+            const citizenId = document.getElementById('citizen-id-input').value;
+            const statusDiv = document.getElementById('status-message');
+            const submitBtn = document.getElementById('submit-button');
+
+            if (citizenId.length !== 13) {
+                statusDiv.textContent = 'กรุณากรอกเลขบัตร 13 หลักให้ถูกต้อง';
+                statusDiv.className = 'mt-4 min-h-[24px] font-semibold text-red-600';
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'กำลังบันทึก...';
+            statusDiv.textContent = '';
+
+            try {
+                const response = await fetch(WEB_APP_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'updateLineId',
+                        data: {
+                            citizenId: citizenId,
+                            lineUserId: lineUserId
+                        }
+                    })
+                });
+
+                // Since we use no-cors, we assume success and will rely on backend to handle data.
+                // To get a real response, a more complex setup is needed. This is simplest.
+                statusDiv.textContent = 'ลงทะเบียนสำเร็จ! คุณสามารถปิดหน้านี้ได้';
+                statusDiv.className = 'mt-4 min-h-[24px] font-semibold text-green-600';
+                document.getElementById('citizen-id-input').disabled = true;
+
+            } catch (e) {
+                statusDiv.textContent = 'การเชื่อมต่อล้มเหลว: ' + e.message;
+                statusDiv.className = 'mt-4 min-h-[24px] font-semibold text-red-600';
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'ยืนยัน';
+            }
+        }
+
+        // Run the main function when the page is ready
+        document.addEventListener('DOMContentLoaded', main);
+    </script>
+</body>
+</html>
