@@ -14,13 +14,13 @@
             --white: #FFFFFF; --dark-text: #333333; --light-text: #888888; --border-color: #EEEEEE;
         }
         body { margin: 0; font-family: 'Sarabun', sans-serif; background-color: var(--light-bg); color: var(--dark-text); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 10px; }
-        .app-container { width: 100%; max-width: 420px; background-color: var(--white); border-radius: 24px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1); overflow: hidden; display: flex; flex-direction: column; min-height: 80vh; }
-        .app-header { background-color: var(--primary-blue); color: var(--white); padding: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .app-container { width: 100%; max-width: 420px; height: 95vh; max-height: 800px; background-color: var(--white); border-radius: 24px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1); overflow: hidden; display: flex; flex-direction: column; }
+        .app-header { background-color: var(--primary-blue); color: var(--white); padding: 20px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
         .app-header h1 { margin: 0; font-size: 1.25em; font-weight: 600; }
         .profile-icon { width: 40px; height: 40px; background-color: rgba(255, 255, 255, 0.2); border-radius: 12px; }
-        main { padding: 25px; flex-grow: 1; }
-        .screen { display: none; }
-        .screen.active { display: block; }
+        main { padding: 25px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; }
+        .screen { display: none; height: 100%; flex-direction: column; justify-content: space-between; }
+        .screen.active { display: flex; }
         .card { background-color: var(--white); border-radius: 16px; padding: 20px; border: 1px solid var(--border-color); }
         button { width: 100%; padding: 15px; border: none; border-radius: 12px; font-size: 1em; font-weight: 700; font-family: 'Sarabun', sans-serif; cursor: pointer; transition: opacity 0.3s; }
         button:hover { opacity: 0.9; }
@@ -29,7 +29,7 @@
         .btn-dark { background-color: var(--primary-blue); color: var(--white); }
         .btn-secondary { background-color: var(--white); color: var(--dark-text); border: 1px solid var(--border-color); }
         .button-group { display: flex; gap: 15px; margin-top: 25px; }
-        #home-screen .info-box { width: 100%; height: 200px; border: 1px dashed var(--border-color); border-radius: 16px; margin-bottom: 25px; }
+        #home-screen .info-box { flex-grow: 1; width: 100%; border: 1px dashed var(--border-color); border-radius: 16px; margin-bottom: 25px; }
         #details-screen .card { display: flex; gap: 20px; }
         .info-details p { margin: 0 0 10px 0; font-size: 0.95em; }
         .info-details p strong { display: block; font-size: 1.1em; color: var(--dark-text); }
@@ -43,8 +43,10 @@
         #message-box { text-align: center; margin-top: 20px; font-weight: bold; padding: 12px; border-radius: 8px; display: none; }
         .message-success { background-color: #d4edda; color: #155724; }
         .message-error { background-color: #f8d7da; color: #721c24; }
-        #camera-scanner-screen { text-align: center; }
-        #video-feed { width: 100%; max-width: 400px; height: auto; border-radius: 16px; border: 2px solid var(--border-color); transform: scaleX(-1); }
+        #camera-scanner-screen { text-align: center; position: relative; }
+        #camera-feed-container { position: relative; width: 100%; flex-grow: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 16px; margin-bottom: 15px; background-color: black;}
+        #video-feed { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
+        #card-frame { position: absolute; width: 90%; height: 0; padding-bottom: 56.25%; /* 16:9 Aspect Ratio */ border: 3px solid rgba(255, 255, 255, 0.9); border-radius: 12px; box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6); }
         #ocr-status { margin: 15px 0; font-weight: 600; color: var(--primary-blue); }
     </style>
 </head>
@@ -64,7 +66,10 @@
             </div>
 
             <div id="camera-scanner-screen" class="screen">
-                <video id="video-feed" autoplay playsinline></video>
+                <div id="camera-feed-container">
+                    <video id="video-feed" autoplay playsinline></video>
+                    <div id="card-frame"></div>
+                </div>
                 <p id="ocr-status">กรุณาจัดให้บัตรประชาชนอยู่ในกรอบ</p>
                 <div class="button-group">
                     <button class="btn-secondary" onclick="stopCamera()">ยกเลิก</button>
@@ -73,21 +78,23 @@
             </div>
 
             <div id="details-screen" class="screen">
-                <div class="card">
-                    <div class="info-details">
-                        <div class="profile-placeholder"></div>
-                        <p><strong>ชื่อ - สกุล:</strong> <span id="detail-name"></span></p>
-                        <p><strong>รหัสนักศึกษา:</strong> <span id="detail-student-id"></span></p>
-                        <p><strong>เลขบัตรประชาชน:</strong> <span id="detail-national-id"></span></p>
-                        <p><strong>หลักสูตร:</strong> <span id="detail-course"></span></p>
-                        <p><strong>สถานะ:</strong> <span id="detail-status"></span></p>
+                <div>
+                    <div class="card">
+                        <div class="info-details">
+                            <div class="profile-placeholder"></div>
+                            <p><strong>ชื่อ - สกุล:</strong> <span id="detail-name"></span></p>
+                            <p><strong>รหัสนักศึกษา:</strong> <span id="detail-student-id"></span></p>
+                            <p><strong>เลขบัตรประชาชน:</strong> <span id="detail-national-id"></span></p>
+                            <p><strong>หลักสูตร:</strong> <span id="detail-course"></span></p>
+                            <p><strong>สถานะ:</strong> <span id="detail-status"></span></p>
+                        </div>
+                        <div class="seat-box">
+                            <span>เลขที่นั่ง</span>
+                            <strong id="detail-seat"></strong>
+                        </div>
                     </div>
-                    <div class="seat-box">
-                        <span>เลขที่นั่ง</span>
-                        <strong id="detail-seat"></strong>
-                    </div>
+                    <div id="message-box"></div>
                 </div>
-                <div id="message-box"></div>
                 <div class="button-group">
                     <button class="btn-secondary" id="cancel-button" onclick="stopCamera()">ยกเลิก</button>
                     <button class="btn-primary" id="confirm-button" onclick="handleConfirm()">ยืนยันข้อมูล</button>
@@ -112,7 +119,7 @@
         function showMessage(text, type) {
             const msgBox = document.getElementById('message-box');
             msgBox.textContent = text;
-            msgBox.className = type === 'success' ? 'message-success' : 'message-error';
+            msgBox.className = 'message ' + (type === 'success' ? 'message-success' : 'message-error');
             msgBox.style.display = 'block';
         }
 
@@ -179,7 +186,7 @@
                 const response = await fetch(`${WEB_APP_URL}?action=search&id=${id}`);
                 const data = await response.json();
                 if (data.found) {
-                    if (videoStream) stopCamera(); // Stop camera only after a successful search
+                    if (videoStream) stopCamera();
                     showDetails(data);
                 } else {
                     alert(`ไม่พบข้อมูลสำหรับเลขบัตร: ${id}`);
@@ -199,15 +206,16 @@
             document.getElementById('detail-course').textContent = data.course;
             document.getElementById('detail-seat').textContent = data.seat;
             const statusSpan = document.getElementById('detail-status');
+            const confirmBtn = document.getElementById('confirm-button');
 
             if (data.status === 'เข้าร่วมแล้ว') {
                 statusSpan.textContent = 'ยืนยันแล้ว';
                 statusSpan.className = 'status-tag checked-in';
-                document.getElementById('confirm-button').style.display = 'none';
+                confirmBtn.style.display = 'none';
             } else {
                 statusSpan.textContent = 'รอการยืนยัน';
                 statusSpan.className = 'status-tag waiting';
-                document.getElementById('confirm-button').style.display = 'block';
+                confirmBtn.style.display = 'block';
             }
             showScreen('details-screen');
         }
