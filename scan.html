@@ -22,6 +22,9 @@
         .screen { display: none; height: 100%; flex-direction: column; justify-content: space-between; }
         .screen.active { display: flex; }
         .card { background-color: var(--white); border-radius: 16px; padding: 20px; border: 1px solid var(--border-color); }
+        .card p { margin: 0 0 12px 0; font-size: 1em; line-height: 1.4; }
+        .card p strong { color: var(--dark-text); font-weight: 600; }
+        .card p span { color: var(--light-text); font-weight: 400; }
         button { width: 100%; padding: 15px; border: none; border-radius: 12px; font-size: 1em; font-weight: 700; font-family: 'Sarabun', sans-serif; cursor: pointer; transition: opacity 0.3s; }
         button:hover { opacity: 0.9; }
         button:disabled { background-color: #a0a0a0; cursor: not-allowed; }
@@ -46,7 +49,7 @@
         #camera-scanner-screen { text-align: center; position: relative; }
         #camera-feed-container { position: relative; width: 100%; flex-grow: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 16px; margin-bottom: 15px; background-color: black;}
         #video-feed { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
-        #card-frame { position: absolute; width: 90%; height: 0; padding-bottom: 56.25%; /* 16:9 Aspect Ratio */ border: 3px solid rgba(255, 255, 255, 0.9); border-radius: 12px; box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6); }
+        #card-frame { position: absolute; width: 90%; height: 0; padding-bottom: 56.25%; border: 3px solid rgba(255, 255, 255, 0.9); border-radius: 12px; box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6); }
         #ocr-status { margin: 15px 0; font-weight: 600; color: var(--primary-blue); }
     </style>
 </head>
@@ -77,6 +80,22 @@
                 </div>
             </div>
 
+            <div id="ocr-results-screen" class="screen">
+                <div>
+                    <h3 style="text-align: center; margin-top:0;">ข้อมูลที่สแกนได้</h3>
+                    <div class="card">
+                        <p><strong>เลขบัตรประชาชน:</strong> <span id="ocr-id"></span></p>
+                        <p><strong>ชื่อ-สกุล:</strong> <span id="ocr-name"></span></p>
+                        <p><strong>วันเกิด:</strong> <span id="ocr-dob"></span></p>
+                    </div>
+                     <p style="text-align: center; font-size: 0.9em; color: var(--light-text); margin-top:15px;">กรุณาตรวจสอบข้อมูล หากถูกต้องกดยืนยัน</p>
+                </div>
+                <div class="button-group">
+                    <button class="btn-secondary" onclick="initCameraScanner()">สแกนใหม่</button>
+                    <button class="btn-primary" id="confirm-search-btn" onclick="handleConfirmAndSearch()">ยืนยันและตรวจสอบ</button>
+                </div>
+            </div>
+
             <div id="details-screen" class="screen">
                 <div>
                     <div class="card">
@@ -96,8 +115,8 @@
                     <div id="message-box"></div>
                 </div>
                 <div class="button-group">
-                    <button class="btn-secondary" id="cancel-button" onclick="stopCamera()">ยกเลิก</button>
-                    <button class="btn-primary" id="confirm-button" onclick="handleConfirm()">ยืนยันข้อมูล</button>
+                    <button class="btn-secondary" id="cancel-button" onclick="showScreen('ocr-results-screen')">ย้อนกลับ</button>
+                    <button class="btn-primary" id="confirm-button" onclick="handleConfirm()">ยืนยันการเข้าร่วม</button>
                 </div>
             </div>
         </main>
@@ -107,7 +126,7 @@
 
     <script>
         const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwBBbtIE7WwUG2IgaXvXU_Z42vxOngXDkhkhG6ADld4jChcBeerWXGZkezLChBkLwIs/exec'; // ⚠️ สำคัญ: แก้ไข URL ตรงนี้
-        let currentMemberData = null;
+        let currentMemberData = {}; // เปลี่ยนเป็น Object เปล่า
         let videoStream = null;
 
         function showScreen(screenId) {
@@ -163,14 +182,24 @@
 
             try {
                 const { data: { text } } = await Tesseract.recognize(canvas, 'tha+eng');
-                statusDiv.textContent = 'กำลังค้นหาเลขบัตร...';
+                statusDiv.textContent = 'กำลังแยกวิเคราะห์ข้อมูล...';
                 const idMatch = text.match(/\d{1}\s?\d{4}\s?\d{5}\s?\d{2}\s?\d{1}/);
+                
                 if (idMatch && idMatch[0]) {
-                    const foundId = idMatch[0].replace(/\s/g, '');
-                    await handleSearch(foundId);
+                    const ocrData = {};
+                    ocrData.id = idMatch[0].replace(/\s/g, '');
+                    
+                    let nameMatch = text.match(/ชื่อตัวและชื่อสกุล\s*\n\s*([^\n]+)/);
+                    ocrData.name = nameMatch && nameMatch[1] ? nameMatch[1].trim() : "ไม่พบ";
+
+                    let dobMatch = text.match(/เกิดวันที่\s+([^\n]+)/);
+                    ocrData.dob = dobMatch && dobMatch[1] ? dobMatch[1].trim() : "ไม่พบ";
+                    
+                    showOcrResults(ocrData); // <-- เรียกฟังก์ชันแสดงผลการสแกน
+
                 } else {
-                    alert('ไม่สามารถสแกนเลขบัตรประชาชนได้ กรุณาลองใหม่');
-                    statusDiv.textContent = 'ไม่พบเลขบัตรประชาชน ลองอีกครั้ง';
+                    alert('ไม่สามารถแสกนบัตรประชาชนได้');
+                    statusDiv.textContent = 'ไม่สามารถแสกนบัตรประชาชนได้';
                 }
             } catch (error) {
                 statusDiv.textContent = 'เกิดข้อผิดพลาดในการประมวลผล';
@@ -180,26 +209,52 @@
             }
         }
 
+        // ========== ฟังก์ชันใหม่: แสดงผลลัพธ์จากการสแกน ==========
+        function showOcrResults(ocrData) {
+            currentMemberData.ocr = ocrData; // เก็บข้อมูลที่สแกนได้
+
+            document.getElementById('ocr-id').textContent = ocrData.id || '-';
+            document.getElementById('ocr-name').textContent = ocrData.name || '-';
+            document.getElementById('ocr-dob').textContent = ocrData.dob || '-';
+            
+            showScreen('ocr-results-screen');
+        }
+        
+        // ========== ฟังก์ชันใหม่: กดยืนยันแล้วไปค้นหาในฐานข้อมูล ==========
+        async function handleConfirmAndSearch() {
+            const id = currentMemberData.ocr.id;
+            if (!id) {
+                alert('ไม่พบเลขบัตรประชาชนที่สแกนได้');
+                return;
+            }
+            
+            const btn = document.getElementById('confirm-search-btn');
+            btn.disabled = true;
+            btn.textContent = 'กำลังตรวจสอบ...';
+            
+            await handleSearch(id);
+            
+            btn.disabled = false;
+            btn.textContent = 'ยืนยันและตรวจสอบ';
+        }
+
         async function handleSearch(id) {
-            document.getElementById('ocr-status').textContent = `พบเลขบัตร: ${id}. กำลังค้นหา...`;
             try {
                 const response = await fetch(`${WEB_APP_URL}?action=search&id=${id}`);
                 const data = await response.json();
                 if (data.found) {
                     if (videoStream) stopCamera();
-                    showDetails(data);
+                    showDetails(data); // <-- แสดงข้อมูลที่ได้จาก Google Sheet
                 } else {
-                    alert(`ไม่พบข้อมูลสำหรับเลขบัตร: ${id}`);
-                    document.getElementById('ocr-status').textContent = 'ไม่พบข้อมูลในระบบ';
+                    alert(`ไม่พบข้อมูลสำหรับเลขบัตร: ${id} ในฐานข้อมูล`);
                 }
             } catch (error) {
                 alert('การเชื่อมต่อเพื่อค้นหาข้อมูลล้มเหลว');
-                document.getElementById('ocr-status').textContent = 'การเชื่อมต่อผิดพลาด';
             }
         }
 
         function showDetails(data) {
-            currentMemberData = data;
+            currentMemberData.sheet = data; // เก็บข้อมูลจากชีต
             document.getElementById('detail-name').textContent = data.name;
             document.getElementById('detail-student-id').textContent = data.studentId;
             document.getElementById('detail-national-id').textContent = data.id;
@@ -221,14 +276,14 @@
         }
 
         async function handleConfirm() {
-            if (!currentMemberData) return;
+            if (!currentMemberData.sheet) return;
             const confirmButton = document.getElementById('confirm-button');
             confirmButton.disabled = true;
             confirmButton.textContent = 'กำลังบันทึก...';
             try {
                 const response = await fetch(WEB_APP_URL, {
                     method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({ action: 'confirm', id: currentMemberData.id })
+                    body: JSON.stringify({ action: 'confirm', id: currentMemberData.sheet.id })
                 });
                 const result = await response.json();
                 if (result.success) {
@@ -237,12 +292,12 @@
                 } else {
                     showMessage(`เกิดข้อผิดพลาด: ${result.message}`, 'error');
                     confirmButton.disabled = false;
-                    confirmButton.textContent = 'ยืนยันข้อมูล';
+                    confirmButton.textContent = 'ยืนยันการเข้าร่วม';
                 }
             } catch (error) {
                 showMessage('การเชื่อมต่อผิดพลาด', 'error');
                 confirmButton.disabled = false;
-                confirmButton.textContent = 'ยืนยันข้อมูล';
+                confirmButton.textContent = 'ยืนยันการเข้าร่วม';
             }
         }
         
