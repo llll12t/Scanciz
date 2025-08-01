@@ -2,18 +2,49 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <title>OCR จากกล้อง</title>
+  <title>OCR กล้อง + กรอบ</title>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
   <style>
-    video, canvas {
+    body { text-align: center; font-family: sans-serif; }
+    .camera-container {
+      position: relative;
+      display: inline-block;
+    }
+
+    video {
       width: 100%;
       max-width: 400px;
+      border-radius: 10px;
+    }
+
+    /* กรอบ Overlay */
+    .frame-overlay {
+      position: absolute;
+      border: 3px dashed #00ff00;
+      border-radius: 8px;
+      width: 90%;
+      height: 50%;
+      top: 25%;
+      left: 5%;
+      pointer-events: none;
+      box-shadow: 0 0 10px rgba(0,255,0,0.7);
+    }
+
+    #snap {
+      margin-top: 10px;
+      padding: 10px 20px;
     }
   </style>
 </head>
 <body>
-  <h2>เปิดกล้องเพื่อสแกนบัตรประชาชน</h2>
-  <video id="video" autoplay></video><br>
+  <h2>วางบัตรประชาชนให้ตรงกรอบ</h2>
+
+  <div class="camera-container">
+    <video id="video" autoplay></video>
+    <div class="frame-overlay"></div>
+  </div>
+
+  <br>
   <button id="snap">📸 ถ่ายภาพ</button>
   <canvas id="canvas" style="display:none;"></canvas>
   <pre id="result">ยังไม่มีผลลัพธ์</pre>
@@ -25,7 +56,7 @@
     const snapBtn = document.getElementById('snap');
 
     // ขอสิทธิ์เปิดกล้อง
-    navigator.mediaDevices.getUserMedia({ video: true })
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
       .then(stream => video.srcObject = stream)
       .catch(err => alert("ไม่สามารถเปิดกล้องได้: " + err));
 
@@ -34,17 +65,14 @@
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
-      
-      const imageData = canvas.toDataURL('image/png');
 
+      const imageData = canvas.toDataURL('image/png');
       result.textContent = '🔍 กำลังสแกน OCR...';
 
       Tesseract.recognize(
         imageData,
-        'tha+eng', // รองรับไทย + อังกฤษ
-        {
-          logger: m => console.log(m)
-        }
+        'tha+eng',
+        { logger: m => console.log(m) }
       ).then(({ data: { text } }) => {
         result.textContent = '📄 ผล OCR:\n\n' + text;
       });
