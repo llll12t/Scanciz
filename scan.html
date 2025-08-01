@@ -35,7 +35,7 @@
         .card p span { color: var(--light-text); font-weight: 400; }
         button { width: 100%; padding: 15px; border: none; border-radius: 12px; font-size: 1em; font-weight: 700; font-family: 'Sarabun', sans-serif; cursor: pointer; transition: opacity 0.3s; }
         button:hover { opacity: 0.9; }
-        button:disabled { background-color: #a0a0a0; cursor: not-allowed; }
+        button:disabled { background-color: #a0a0a0; color: #666; cursor: not-allowed; }
         .btn-primary { background-color: var(--primary-yellow); color: var(--dark-text); }
         .btn-dark { background-color: var(--primary-blue); color: var(--white); }
         .btn-secondary { background-color: var(--white); color: var(--dark-text); border: 1px solid var(--border-color); }
@@ -59,11 +59,13 @@
         #card-frame { position: absolute; width: 90%; height: 0; padding-bottom: 56.25%; border: 3px solid rgba(255, 255, 255, 0.9); border-radius: 12px; box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6); }
         #ocr-status { margin: 15px 0; font-weight: 600; color: var(--primary-blue); min-height: 24px;}
         #log-list { padding: 5px 20px; max-height: 60vh; overflow-y: auto; }
-        #log-list .log-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 5px; border-bottom: 1px solid var(--border-color); }
+        #log-list .log-item { display: flex; justify-content: space-between; align-items: flex-start; padding: 12px 5px; border-bottom: 1px solid var(--border-color); }
         #log-list .log-item:last-child { border-bottom: none; }
+        #log-list .log-main { /* container */ }
+        #log-list .log-name { font-weight: 600; font-size: 1em; margin-bottom: 2px; }
         #log-list .log-time { font-size: 0.8em; color: var(--light-text); }
-        #log-list .log-details { text-align: right; }
-        #log-list .log-name { font-weight: 600; }
+        #log-list .log-extra { text-align: right; }
+        #log-list .log-course { font-size: 0.9em; font-weight: 600; }
         #log-list .log-id { font-size: 0.9em; color: var(--light-text); }
         #manual-input-screen input { width: 100%; text-align: center; font-size: 1.5em; border: none; border-bottom: 2px solid var(--primary-blue); padding: 10px 0; letter-spacing: 2px; }
         #manual-input-screen input:focus { outline: none; }
@@ -207,9 +209,11 @@
         function stopCamera() {
             if (videoStream) {
                 videoStream.getTracks().forEach(track => track.stop());
+                videoStream = null;
             }
             if(scanInterval) {
                 clearInterval(scanInterval);
+                scanInterval = null;
             }
             showScreen('home-screen');
         }
@@ -231,7 +235,7 @@
             const statusDiv = document.getElementById('ocr-status');
 
             scanInterval = setInterval(async () => {
-                if(isProcessing) return;
+                if(isProcessing || !video.srcObject) return;
                 isProcessing = true;
                 canvas.width = video.videoWidth;
                 canvas.height = video.videoHeight;
@@ -244,6 +248,7 @@
                     
                     if (idMatch && idMatch[0]) {
                         clearInterval(scanInterval);
+                        scanInterval = null;
                         statusDiv.textContent = 'พบเลขบัตรแล้ว! กำลังตรวจสอบ...';
                         const foundId = idMatch[0].replace(/\s/g, '');
                         await handleSearch(foundId);
@@ -269,7 +274,7 @@
             });
         }
         
-       async function showHistory() {
+        async function showHistory() {
             showScreen('history-screen');
             const logListDiv = document.getElementById('log-list');
             const courseFilter = document.getElementById('course-filter');
@@ -285,8 +290,6 @@
                     result.data.forEach(log => {
                         const item = document.createElement('div');
                         item.className = 'log-item';
-                        
-                        // --- ส่วนที่แก้ไขการแสดงผล ---
                         const logTime = new Date(log[0]).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' });
                         const citizenId = log[1];
                         const name = log[2];
@@ -300,7 +303,7 @@
                                 <div class="log-time">${logTime} น.</div>
                             </div>
                             <div class="log-extra">
-                                 <div class="log-course">${course}</div>
+                                <div class="log-course">${course}</div>
                                 <div class="log-id">${citizenId}</div>
                             </div>
                         `;
@@ -320,7 +323,6 @@
                 const result = await response.json();
                 if (result.success) {
                     const courseFilter = document.getElementById('course-filter');
-                    // Clear existing options except the first one
                     while (courseFilter.options.length > 1) {
                         courseFilter.remove(1);
                     }
@@ -341,23 +343,26 @@
                 const response = await fetch(`${WEB_APP_URL}?action=search&id=${id}`);
                 const data = await response.json();
                 if (data.found) {
-                    if (videoStream) { // Only stop if it was running
-                        clearInterval(scanInterval);
+                    if (videoStream) {
                         videoStream.getTracks().forEach(track => track.stop());
                         videoStream = null;
                     }
                     showDetails(data);
                 } else {
-                    if (onErrorCallback) onErrorCallback();
-                    else {
+                    if (onErrorCallback) {
+                        onErrorCallback();
+                    } else {
                         alert(`ไม่พบข้อมูลสำหรับเลขบัตร: ${id} ในฐานข้อมูล`);
                         initCameraScanner();
                     }
                 }
             } catch (error) {
                 alert('การเชื่อมต่อเพื่อค้นหาข้อมูลล้มเหลว');
-                if (onErrorCallback) onErrorCallback();
-                else initCameraScanner();
+                if (onErrorCallback) {
+                    onErrorCallback();
+                } else {
+                    initCameraScanner();
+                }
             }
         }
 
@@ -370,12 +375,18 @@
             document.getElementById('detail-seat').textContent = data.seat;
             const statusSpan = document.getElementById('detail-status');
             const confirmBtn = document.getElementById('confirm-button');
+            const nextBtn = document.getElementById('cancel-button');
+
+            confirmBtn.disabled = false;
+            nextBtn.disabled = false;
+            nextBtn.textContent = 'สแกนคนถัดไป';
 
             statusSpan.className = "status-tag";
-            if (data.status === '✅') {
+            if (data.status === 'เข้าร่วมแล้ว') {
                 statusSpan.textContent = 'ยืนยันแล้ว';
                 statusSpan.classList.add('checked-in');
                 confirmBtn.style.display = 'none';
+                nextBtn.textContent = 'กลับ';
             } else {
                 statusSpan.textContent = 'รอการยืนยัน';
                 statusSpan.classList.add('waiting');
@@ -387,8 +398,12 @@
         async function handleConfirm() {
             if (!currentMemberData.sheet) return;
             const confirmButton = document.getElementById('confirm-button');
+            const nextButton = document.getElementById('cancel-button');
+            
             confirmButton.disabled = true;
             confirmButton.textContent = 'กำลังบันทึก...';
+            nextButton.disabled = true;
+
             try {
                 const response = await fetch(WEB_APP_URL, {
                     method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -398,15 +413,19 @@
                 if (result.success) {
                     showMessage('ยืนยันข้อมูลสำเร็จ!', 'success');
                     document.getElementById('confirm-button').style.display = 'none';
+                    nextButton.textContent = 'บันทึกแล้ว';
+                    setTimeout(() => { stopCamera(); }, 2000);
                 } else {
                     showMessage(`เกิดข้อผิดพลาด: ${result.message}`, 'error');
                     confirmButton.disabled = false;
                     confirmButton.textContent = 'ยืนยันการเข้าร่วม';
+                    nextButton.disabled = false;
                 }
             } catch (error) {
                 showMessage('การเชื่อมต่อผิดพลาด', 'error');
                 confirmButton.disabled = false;
                 confirmButton.textContent = 'ยืนยันการเข้าร่วม';
+                nextButton.disabled = false;
             }
         }
         
