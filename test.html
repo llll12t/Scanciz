@@ -12,7 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=sarabun:wght@400;600;700&display=swap" rel="stylesheet">
 
     <style>
-        :root {
+              :root {
             --primary-blue: #110D42;
             --primary-yellow: #FFB900;
             --light-bg: #F5F7FA;
@@ -21,8 +21,8 @@
             --light-text: #888888;
             --border-color: #EEEEEE;
         }
-        body { margin: 0; font-family: 'Sarabun', sans-serif; background-color: var(--light-bg); color: var(--dark-text); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 10px; }
-        .app-container { width: 100%; max-width: 420px; height: 95vh; max-height: 800px; background-color: var(--white); border-radius: 24px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1); overflow: hidden; display: flex; flex-direction: column; }
+        body { margin: 0; font-family: 'Sarabun', sans-serif; background-color: var(--light-bg); color: var(--dark-text); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 0px; }
+        .app-container { width: 100%; max-width: 420px; height: 100vh; max-height: 800px; background-color: var(--white); border-radius: 0px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1); overflow: hidden; display: flex; flex-direction: column; }
         .app-header { background-color: var(--primary-blue); color: var(--white); padding: 20px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
         .app-header h1 { margin: 0; font-size: 1.25em; font-weight: 600; }
         .header-back-button { width: 40px; background: none; border: none; color: white; font-size: 2em; line-height: 1; cursor: pointer; padding: 0; text-align: left;}
@@ -56,7 +56,7 @@
         #camera-scanner-screen { text-align: center; position: relative; }
         #camera-feed-container { position: relative; width: 100%; flex-grow: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 16px; margin-bottom: 15px; background-color: black;}
         #video-feed { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
-        #card-frame { position: absolute; width: 90%; height: 50%; top: 25%; left: 5%; border: 3px dashed var(--primary-yellow); border-radius: 12px; box-shadow: 0 0 10px rgba(255,185,0,0.7); pointer-events: none; }
+        #card-frame { position: absolute; width: 90%; height: 0; padding-bottom: 56.25%; border: 3px solid rgba(255, 255, 255, 0.9); border-radius: 12px; box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6); }
         #ocr-status { margin: 15px 0; font-weight: 600; color: var(--primary-blue); min-height: 24px;}
         #log-list { padding: 5px 20px; max-height: 60vh; overflow-y: auto; }
         #log-list .log-item { display: flex; justify-content: space-between; align-items: flex-start; padding: 12px 5px; border-bottom: 1px solid var(--border-color); }
