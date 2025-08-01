@@ -42,13 +42,13 @@
         .btn-secondary { background-color: var(--white); color: var(--dark-text); border: 1px solid var(--border-color); }
         .button-group { display: flex; gap: 15px; margin-top: 25px; }
         #home-screen .info-box { flex-grow: 1; width: 100%; border: 1px dashed var(--border-color); border-radius: 16px; margin-bottom: 25px; }
-        #details-screen .card { display: flex; gap: 20px; }
+        #details-screen .card { display: block; }
         .info-details p { margin: 0 0 10px 0; font-size: 0.95em; }
         .info-details p strong { display: block; font-size: 1.1em; color: var(--dark-text); }
         .info-details .status-tag { display: inline-block; padding: 5px 12px; border-radius: 20px; font-weight: 600; font-size: 0.9em; }
         .status-tag.waiting { background-color: #fff0c7; color: #d18c00; }
         .status-tag.checked-in { background-color: #d4edda; color: #155724; }
-        .seat-box { background-color: var(--primary-blue); color: var(--white); width: 100px; height: 100px; border-radius: 16px; display: flex; flex-direction: column; justify-content: center; align-items: center; flex-shrink: 0; }
+        .seat-box { background-color: var(--primary-blue); color: var(--white); width: 100%; height: 100px;margin-bottom: 23px; border-radius: 16px; display: flex; flex-direction: column; justify-content: center; align-items: center; flex-shrink: 0; }
         .seat-box span { font-size: 0.9em; }
         .seat-box strong { font-size: 2.5em; font-weight: 700; line-height: 1.1; }
         .profile-placeholder { width: 80px; height: 80px; background-color: #e0e0e0; border-radius: 12px; margin-bottom: 15px; }
@@ -125,18 +125,18 @@
             <div id="details-screen" class="screen">
                 <div>
                     <div class="card">
+                         <div class="seat-box">
+                            <span>เลขที่นั่ง</span>
+                            <strong id="detail-seat"></strong>
+                        </div>
                         <div class="info-details">
-                            <div class="profile-placeholder"></div>
                             <p><strong>ชื่อ - สกุล:</strong> <span id="detail-name"></span></p>
                             <p><strong>รหัสนักศึกษา:</strong> <span id="detail-student-id"></span></p>
                             <p><strong>เลขบัตรประชาชน:</strong> <span id="detail-national-id"></span></p>
                             <p><strong>หลักสูตร:</strong> <span id="detail-course"></span></p>
                             <p><strong>สถานะ:</strong> <span id="detail-status"></span></p>
                         </div>
-                        <div class="seat-box">
-                            <span>เลขที่นั่ง</span>
-                            <strong id="detail-seat"></strong>
-                        </div>
+                     
                     </div>
                     <div id="message-box"></div>
                 </div>
@@ -369,4 +369,3 @@
     </script>
 </body>
 </html>
-
