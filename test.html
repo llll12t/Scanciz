@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ข้อมูลสมาชิก</title>
+    
+    <script src='https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js'></script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary-blue: #110D42;
+            --primary-yellow: #FFB900;
+            --light-bg: #F5F7FA;
+            --white: #FFFFFF;
+            --dark-text: #333333;
+            --light-text: #888888;
+            --border-color: #EEEEEE;
+        }
+        body { margin: 0; font-family: 'Sarabun', sans-serif; background-color: var(--light-bg); color: var(--dark-text); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 10px; }
+        .app-container { width: 100%; max-width: 420px; height: 95vh; max-height: 800px; background-color: var(--white); border-radius: 24px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1); overflow: hidden; display: flex; flex-direction: column; }
+        .app-header { background-color: var(--primary-blue); color: var(--white); padding: 20px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+        .app-header h1 { margin: 0; font-size: 1.25em; font-weight: 600; }
+        .header-back-button { width: 40px; background: none; border: none; color: white; font-size: 2em; line-height: 1; cursor: pointer; padding: 0; text-align: left;}
+        main { padding: 25px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; overflow-y: auto; }
+        .screen { display: none; height: 100%; flex-direction: column; justify-content: space-between; }
+        .screen.active { display: flex; }
+        .card { background-color: var(--white); border-radius: 16px; padding: 20px; border: 1px solid var(--border-color); }
+        .card p { margin: 0 0 12px 0; font-size: 1em; line-height: 1.4; }
+        .card p strong { color: var(--dark-text); font-weight: 600; }
+        .card p span { color: var(--light-text); font-weight: 400; }
+        button { width: 100%; padding: 15px; border: none; border-radius: 12px; font-size: 1em; font-weight: 700; font-family: 'Sarabun', sans-serif; cursor: pointer; transition: opacity 0.3s; }
+        button:hover { opacity: 0.9; }
+        button:disabled { background-color: #a0a0a0; color: #666; cursor: not-allowed; }
+        .btn-primary { background-color: var(--primary-yellow); color: var(--dark-text); }
+        .btn-dark { background-color: var(--primary-blue); color: var(--white); }
+        .btn-secondary { background-color: var(--white); color: var(--dark-text); border: 1px solid var(--border-color); }
+        .button-group { display: flex; gap: 15px; margin-top: 25px; }
+        #home-screen .info-box { flex-grow: 1; width: 100%; border: 1px dashed var(--border-color); border-radius: 16px; margin-bottom: 25px; }
+        #details-screen .card { display: block; }
+        .info-details p { margin: 0 0 10px 0; font-size: 0.95em; }
+        .info-details p strong { display: block; font-size: 1.1em; color: var(--dark-text); }
+        .info-details .status-tag { display: inline-block; padding: 5px 12px; border-radius: 20px; font-weight: 600; font-size: 0.9em; }
+        .status-tag.waiting { background-color: #fff0c7; color: #d18c00; }
+        .status-tag.checked-in { background-color: #d4edda; color: #155724; }
+        .seat-box { background-color: var(--primary-blue); color: var(--white); width: 100%; height: 100px;margin-bottom: 23px; border-radius: 16px; display: flex; flex-direction: column; justify-content: center; align-items: center; flex-shrink: 0; }
+        .seat-box span { font-size: 0.9em; }
+        .seat-box strong { font-size: 2.5em; font-weight: 700; line-height: 1.1; }
+        #message-box { text-align: center; margin-top: 20px; font-weight: bold; padding: 12px; border-radius: 8px; display: none; }
+        .message-success { background-color: #d4edda; color: #155724; }
+        .message-error { background-color: #f8d7da; color: #721c24; }
+        #camera-scanner-screen { text-align: center; position: relative; }
+        #camera-feed-container { position: relative; width: 100%; flex-grow: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 16px; margin-bottom: 15px; background-color: black;}
+        #video-feed { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
+        #card-frame { position: absolute; width: 90%; height: 50%; top: 25%; left: 5%; border: 3px dashed var(--primary-yellow); border-radius: 12px; box-shadow: 0 0 10px rgba(255,185,0,0.7); pointer-events: none; }
+        #ocr-status { margin: 15px 0; font-weight: 600; color: var(--primary-blue); min-height: 24px;}
+        #log-list { padding: 5px 20px; max-height: 60vh; overflow-y: auto; }
+        #log-list .log-item { display: flex; justify-content: space-between; align-items: flex-start; padding: 12px 5px; border-bottom: 1px solid var(--border-color); }
+        #log-list .log-item:last-child { border-bottom: none; }
+        #log-list .log-main { /* container */ }
+        #log-list .log-name { font-weight: 600; font-size: 1em; margin-bottom: 2px; }
+        #log-list .log-time { font-size: 0.8em; color: var(--light-text); }
+        #log-list .log-extra { text-align: right; }
+        #log-list .log-course { font-size: 0.9em; font-weight: 600; }
+        #log-list .log-id { font-size: 0.9em; color: var(--light-text); }
+        #manual-input-screen input { width: 100%; text-align: center; font-size: 1.5em; border: none; border-bottom: 2px solid var(--primary-blue); padding: 10px 0; letter-spacing: 2px; }
+        #manual-input-screen input:focus { outline: none; }
+        #history-filter { display: flex; gap: 10px; margin-bottom: 15px; align-items: center; }
+        #history-filter select { flex-grow: 1; padding: 8px; border-radius: 8px; border: 1px solid var(--border-color); font-family: 'Sarabun', sans-serif; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <button class="header-back-button" onclick="stopCamera()">&#8249;</button>
+            <h1>ข้อมูลสมาชิก</h1>
+            <div style="width: 40px;"></div>
+        </header>
+        <main>
+            <div id="home-screen" class="screen active">
+                <div class="info-box"></div>
+                <div class="button-group">
+                    <button class="btn-dark" onclick="showHistory()">ประวัติ</button>
+                    <button class="btn-primary" onclick="initCameraScanner()">ตรวจสอบ บัตร ปชช</button>
+                </div>
+            </div>
+
+            <div id="camera-scanner-screen" class="screen">
+                <div id="camera-feed-container">
+                    <video id="video-feed" autoplay playsinline></video>
+                    <div id="card-frame"></div>
+                </div>
+                <p id="ocr-status">กำลังเริ่มต้นกล้อง...</p>
+                <div class="button-group">
+                    <button class="btn-secondary" style="flex:1" onclick="showScreen('manual-input-screen')">กรอกรหัสเอง</button>
+                    <button class="btn-secondary" style="flex:1" onclick="stopCamera()">ยกเลิก</button>
+                </div>
+            </div>
+
+            <div id="manual-input-screen" class="screen">
+                <div>
+                    <h3 style="text-align:center;">กรอกเลขบัตรประชาชน</h3>
+                    <div class="card" style="padding: 30px;">
+                        <input type="tel" id="manual-id-input" pattern="[0-9]*" placeholder="xxxxxxxxxxxxx">
+                    </div>
+                    <div id="manual-search-status" style="text-align:center; color: red; margin-top: 15px; min-height: 20px;"></div>
+                </div>
+                <div class="button-group">
+                    <button class="btn-secondary" onclick="showScreen('home-screen')">กลับหน้าหลัก</button>
+                    <button class="btn-primary" onclick="handleManualSearch()">ค้นหา</button>
+                </div>
+            </div>
+            
+             <div id="history-screen" class="screen">
+                <div>
+                     <h3 style="text-align:center; margin-top:0;">ประวัติการเช็คอิน</h3>
+                     <div id="history-filter">
+                         <label for="course-filter">หลักสูตร:</label>
+                         <select id="course-filter" onchange="showHistory()">
+                             <option value="all">ทั้งหมด</option>
+                         </select>
+                     </div>
+                     <div id="log-list" class="card">
+                        </div>
+                </div>
+                <div class="button-group">
+                    <button class="btn-secondary" onclick="showScreen('home-screen')">กลับหน้าหลัก</button>
+                </div>
+            </div>
+
+            <div id="details-screen" class="screen">
+                <div>
+                    <div class="card">
+                         <div class="seat-box">
+                            <span>เลขที่นั่ง</span>
+                            <strong id="detail-seat"></strong>
+                        </div>
+                        <div class="info-details">
+                            <p><strong>ชื่อ - สกุล:</strong> <span id="detail-name"></span></p>
+                            <p><strong>รหัสนักศึกษา:</strong> <span id="detail-student-id"></span></p>
+                            <p><strong>เลขบัตรประชาชน:</strong> <span id="detail-national-id"></span></p>
+                            <p><strong>หลักสูตร:</strong> <span id="detail-course"></span></p>
+                            <p><strong>สถานะ:</strong> <span id="detail-status"></span></p>
+                        </div>
+                    </div>
+                    <div id="message-box"></div>
+                </div>
+                <div class="button-group">
+                    <button class="btn-secondary" id="cancel-button" onclick="initCameraScanner()">สแกนคนถัดไป</button>
+                    <button class="btn-primary" id="confirm-button" onclick="handleConfirm()">ยืนยันการเข้าร่วม</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <canvas id="canvas" style="display:none;"></canvas>
+
+    <script>
+        const WEB_APP_URL = 'YOUR_WEB_APP_URL';
+        let currentMemberData = {};
+        let videoStream = null;
+        let scanTimeout = null;
+        let isScanning = false;
+
+        function showScreen(screenId) {
+            document.querySelectorAll('main > .screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            const activeScreen = document.getElementById(screenId);
+            if (activeScreen) {
+                activeScreen.classList.add('active');
+            }
+            hideMessage();
+        }
+
+        function showMessage(text, type) {
+            const msgBox = document.getElementById('message-box');
+            msgBox.textContent = text;
+            msgBox.className = 'message-box ' + (type === 'success' ? 'message-success' : 'message-error');
+            msgBox.style.display = 'block';
+        }
+
+        function hideMessage() {
+            document.getElementById('message-box').style.display = 'none';
+        }
+
+        async function initCameraScanner() {
+            showScreen('camera-scanner-screen');
+            const video = document.getElementById('video-feed');
+            const statusDiv = document.getElementById('ocr-status');
+            const constraints = { video: { facingMode: 'environment', width: { ideal: 1280 }, height: {ideal: 720} } };
+            
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = stream;
+                videoStream = stream;
+                
+                video.onloadeddata = () => {
+                    isScanning = true;
+                    statusDiv.textContent = 'จัดบัตรให้อยู่ในกรอบ...';
+                    startAutoScanLoop();
+                };
+
+            } catch (err) {
+                statusDiv.textContent = 'ไม่สามารถเปิดกล้องได้';
+                alert('เกิดข้อผิดพลาดในการเปิดกล้อง: ' + err);
+            }
+        }
+
+        function stopCamera() {
+            isScanning = false;
+            if (scanTimeout) {
+                clearTimeout(scanTimeout);
+                scanTimeout = null;
+            }
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+                videoStream = null;
+            }
+            showScreen('home-screen');
+        }
+        
+        async function startAutoScanLoop() {
+            if (!isScanning) return;
+
+            const video = document.getElementById('video-feed');
+            const canvas = document.getElementById('canvas');
+            const statusDiv = document.getElementById('ocr-status');
+
+            if (video.readyState < video.HAVE_ENOUGH_DATA) {
+                 if (isScanning) scanTimeout = setTimeout(startAutoScanLoop, 1000);
+                 return;
+            }
+
+            const ctx = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            const x = canvas.width * 0.05;
+            const y = canvas.height * 0.25;
+            const w = canvas.width * 0.9;
+            const h = canvas.height * 0.5;
+
+            statusDiv.textContent = "🔍 กำลังตรวจสอบภาพ...";
+
+            try {
+                const { data: { text } } = await Tesseract.recognize(
+                    ctx.getImageData(x, y, w, h),
+                    'tha+eng'
+                );
+                
+                const idMatch = text.match(/\d[\d\s\-]{11,20}/);
+
+                if (idMatch && idMatch[0]) {
+                    const idNumber = idMatch[0].replace(/\D/g, '');
+
+                    if (idNumber.length === 13) {
+                        isScanning = false;
+                        statusDiv.textContent = `✅ พบเลขบัตรแล้ว! กำลังตรวจสอบ...`;
+                        await handleSearch(idNumber);
+                        return;
+                    } else {
+                        statusDiv.textContent = `⚠️ ตรวจพบเลข: ${idNumber} (ไม่ครบ 13 หลัก)`;
+                    }
+                } else {
+                    statusDiv.textContent = "📷 ยังไม่พบเลขบัตรในกรอบ...";
+                }
+
+            } catch (e) {
+                console.error("OCR Error:", e);
+                statusDiv.textContent = "❌ เกิดข้อผิดพลาดในการอ่านภาพ";
+            }
+
+            if (isScanning) {
+                scanTimeout = setTimeout(startAutoScanLoop, 1500);
+            }
+        }
+        
+        async function handleManualSearch() {
+            const id = document.getElementById('manual-id-input').value;
+            const statusDiv = document.getElementById('manual-search-status');
+            if(!id || id.length !== 13) {
+                statusDiv.textContent = 'กรุณากรอกเลข 13 หลักให้ถูกต้อง';
+                return;
+            }
+            statusDiv.textContent = 'กำลังค้นหา...';
+            await handleSearch(id, () => {
+                statusDiv.textContent = `ไม่พบข้อมูลสำหรับเลขบัตร: ${id}`;
+            });
+        }
+        
+        async function showHistory() {
+            showScreen('history-screen');
+            const logListDiv = document.getElementById('log-list');
+            const courseFilter = document.getElementById('course-filter');
+            const selectedCourse = courseFilter.value;
+            logListDiv.innerHTML = '<p style="text-align:center;">กำลังโหลด...</p>';
+
+            try {
+                const response = await fetch(`${WEB_APP_URL}?action=getLog&course=${selectedCourse}`);
+                const result = await response.json();
+
+                if(result.success && result.data.length > 0) {
+                    logListDiv.innerHTML = '';
+                    result.data.forEach(log => {
+                        const item = document.createElement('div');
+                        item.className = 'log-item';
+                        const logTime = new Date(log[0]).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' });
+                        const citizenId = log[1];
+                        const name = log[2];
+                        const course = log[3];
+                        const status = log[4];
+                        const statusIcon = status === 'เข้าร่วมแล้ว' ? '✅' : '';
+
+                        item.innerHTML = `
+                            <div class="log-main">
+                                <div class="log-name">${name} ${statusIcon}</div>
+                                <div class="log-time">${logTime} น.</div>
+                            </div>
+                            <div class="log-extra">
+                                <div class="log-course">${course}</div>
+                                <div class="log-id">${citizenId}</div>
+                            </div>
+                        `;
+                        logListDiv.appendChild(item);
+                    });
+                } else {
+                     logListDiv.innerHTML = '<p style="text-align:center;">ไม่พบข้อมูลประวัติ</p>';
+                }
+            } catch(error) {
+                logListDiv.innerHTML = '<p style="text-align:center; color:red;">ไม่สามารถโหลดข้อมูลได้</p>';
+            }
+        }
+        
+        async function populateCourseFilter() {
+            try {
+                const response = await fetch(`${WEB_APP_URL}?action=getCourses`);
+                const result = await response.json();
+                if (result.success) {
+                    const courseFilter = document.getElementById('course-filter');
+                    while (courseFilter.options.length > 1) {
+                        courseFilter.remove(1);
+                    }
+                    result.data.forEach(course => {
+                        const option = document.createElement('option');
+                        option.value = course;
+                        option.textContent = course;
+                        courseFilter.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error("Could not populate course filter:", error);
+            }
+        }
+
+        async function handleSearch(id, onErrorCallback) {
+            try {
+                const response = await fetch(`${WEB_APP_URL}?action=search&id=${id}`);
+                const data = await response.json();
+                if (data.found) {
+                    if (videoStream) {
+                        isScanning = false;
+                        videoStream.getTracks().forEach(track => track.stop());
+                        videoStream = null;
+                    }
+                    showDetails(data);
+                } else {
+                    if (onErrorCallback) {
+                        onErrorCallback();
+                    } else {
+                        alert(`ไม่พบข้อมูลสำหรับเลขบัตร: ${id} ในฐานข้อมูล`);
+                        initCameraScanner();
+                    }
+                }
+            } catch (error) {
+                alert('การเชื่อมต่อเพื่อค้นหาข้อมูลล้มเหลว');
+                if (onErrorCallback) {
+                    onErrorCallback();
+                } else {
+                    initCameraScanner();
+                }
+            }
+        }
+
+        function showDetails(data) {
+            currentMemberData.sheet = data;
+            document.getElementById('detail-name').textContent = data.name;
+            document.getElementById('detail-student-id').textContent = data.studentId;
+            document.getElementById('detail-national-id').textContent = data.id;
+            document.getElementById('detail-course').textContent = data.course;
+            document.getElementById('detail-seat').textContent = data.seat;
+            const statusSpan = document.getElementById('detail-status');
+            const confirmBtn = document.getElementById('confirm-button');
+            const nextBtn = document.getElementById('cancel-button');
+
+            confirmBtn.disabled = false;
+            nextBtn.disabled = false;
+            nextBtn.textContent = 'สแกนคนถัดไป';
+
+            statusSpan.className = "status-tag";
+            if (data.status === 'เข้าร่วมแล้ว') {
+                statusSpan.textContent = 'ยืนยันแล้ว';
+                statusSpan.classList.add('checked-in');
+                confirmBtn.style.display = 'none';
+                nextBtn.textContent = 'กลับ';
+            } else {
+                statusSpan.textContent = 'รอการยืนยัน';
+                statusSpan.classList.add('waiting');
+                confirmBtn.style.display = 'block';
+            }
+            showScreen('details-screen');
+        }
+
+        async function handleConfirm() {
+            if (!currentMemberData.sheet) return;
+            const confirmButton = document.getElementById('confirm-button');
+            const nextButton = document.getElementById('cancel-button');
+            
+            confirmButton.disabled = true;
+            confirmButton.textContent = 'กำลังบันทึก...';
+            nextButton.disabled = true;
+
+            try {
+                const response = await fetch(WEB_APP_URL, {
+                    method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ action: 'confirm', id: currentMemberData.sheet.id, name: currentMemberData.sheet.name, course: currentMemberData.sheet.course })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    showMessage('ยืนยันข้อมูลสำเร็จ!', 'success');
+                    document.getElementById('confirm-button').style.display = 'none';
+                    nextButton.textContent = 'บันทึกแล้ว';
+                    setTimeout(() => { stopCamera(); }, 2000);
+                } else {
+                    showMessage(`เกิดข้อผิดพลาด: ${result.message}`, 'error');
+                    confirmButton.disabled = false;
+                    confirmButton.textContent = 'ยืนยันการเข้าร่วม';
+                    nextButton.disabled = false;
+                }
+            } catch (error) {
+                showMessage('การเชื่อมต่อผิดพลาด', 'error');
+                confirmButton.disabled = false;
+                confirmButton.textContent = 'ยืนยันการเข้าร่วม';
+                nextButton.disabled = false;
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            showScreen('home-screen');
+            populateCourseFilter();
+        });
+    </script>
+</body>
+</html>
