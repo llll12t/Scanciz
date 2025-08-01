@@ -224,17 +224,20 @@
             showScreen('home-screen');
         }
         
-        async function startAutoScanLoop() {
+       async function startAutoScanLoop() {
             if (!isScanning) return;
 
             const video = document.getElementById('video-feed');
             const canvas = document.getElementById('canvas');
             const statusDiv = document.getElementById('ocr-status');
 
-            if (video.readyState < video.HAVE_ENOUGH_DATA) {
-                 if (isScanning) scanTimeout = setTimeout(startAutoScanLoop, 1000);
+            // --- ส่วนที่แก้ไข ---
+            // 1. เพิ่มการตรวจสอบว่าวิดีโอมีขนาดภาพที่ถูกต้อง (มากกว่า 0) หรือไม่
+            if (!video || video.readyState < video.HAVE_ENOUGH_DATA || video.videoWidth === 0) {
+                 if (isScanning) scanTimeout = setTimeout(startAutoScanLoop, 1000); // ถ้ายังไม่พร้อม ให้รอแล้วลองใหม่
                  return;
             }
+            // --- จบส่วนที่แก้ไข ---
 
             const ctx = canvas.getContext('2d');
             canvas.width = video.videoWidth;
