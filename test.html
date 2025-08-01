@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -21,8 +22,8 @@
             --light-text: #888888;
             --border-color: #EEEEEE;
         }
-        body { margin: 0; font-family: 'Sarabun', sans-serif; background-color: var(--light-bg); color: var(--dark-text); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 0px; }
-        .app-container { width: 100%; max-width: 420px; height: 100vh; max-height: 800px; background-color: var(--white); border-radius: 0px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1); overflow: hidden; display: flex; flex-direction: column; }
+        body { margin: 0; font-family: 'Sarabun', sans-serif; background-color: var(--light-bg); color: var(--dark-text); display: flex; justify-content: center;  min-height: 100vh; padding: 0px; }
+        .app-container { width: 100%; max-width: 420px; height: 100vh; max-height:650px; background-color: var(--white); border-radius: 0px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1); overflow: hidden; display: flex; flex-direction: column; }
         .app-header { background-color: var(--primary-blue); color: var(--white); padding: 20px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
         .app-header h1 { margin: 0; font-size: 1.25em; font-weight: 600; }
         .header-back-button { width: 40px; background: none; border: none; color: white; font-size: 2em; line-height: 1; cursor: pointer; padding: 0; text-align: left;}
@@ -58,7 +59,7 @@
         #video-feed { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
         #card-frame { position: absolute; width: 90%; height: 0; padding-bottom: 56.25%; border: 3px solid rgba(255, 255, 255, 0.9); border-radius: 12px; box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6); }
         #ocr-status { margin: 15px 0; font-weight: 600; color: var(--primary-blue); min-height: 24px;}
-        #log-list { padding: 5px 20px; max-height: 60vh; overflow-y: auto; }
+        #log-list { padding: 5px 20px; max-height: 35vh; overflow-y: auto; }
         #log-list .log-item { display: flex; justify-content: space-between; align-items: flex-start; padding: 12px 5px; border-bottom: 1px solid var(--border-color); }
         #log-list .log-item:last-child { border-bottom: none; }
         #log-list .log-main { /* container */ }
