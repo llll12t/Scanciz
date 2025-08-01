@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <title>OCR กล้อง + กรอบ</title>
+  <title>OCR บัตรอัตโนมัติ</title>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
   <style>
     body { text-align: center; font-family: sans-serif; }
@@ -17,65 +17,95 @@
       border-radius: 10px;
     }
 
-    /* กรอบ Overlay */
     .frame-overlay {
       position: absolute;
       border: 3px dashed #00ff00;
-      border-radius: 8px;
       width: 90%;
       height: 50%;
       top: 25%;
       left: 5%;
+      border-radius: 8px;
       pointer-events: none;
       box-shadow: 0 0 10px rgba(0,255,0,0.7);
-    }
-
-    #snap {
-      margin-top: 10px;
-      padding: 10px 20px;
     }
   </style>
 </head>
 <body>
-  <h2>วางบัตรประชาชนให้ตรงกรอบ</h2>
+  <h2>สแกนบัตรอัตโนมัติ</h2>
 
   <div class="camera-container">
     <video id="video" autoplay></video>
     <div class="frame-overlay"></div>
   </div>
 
-  <br>
-  <button id="snap">📸 ถ่ายภาพ</button>
   <canvas id="canvas" style="display:none;"></canvas>
-  <pre id="result">ยังไม่มีผลลัพธ์</pre>
+  <pre id="result">รอจับภาพ...</pre>
 
   <script>
     const video = document.getElementById('video');
     const canvas = document.getElementById('canvas');
     const result = document.getElementById('result');
-    const snapBtn = document.getElementById('snap');
+    let scanning = true;
 
-    // ขอสิทธิ์เปิดกล้อง
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+    // เปิดกล้อง
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
       .then(stream => video.srcObject = stream)
-      .catch(err => alert("ไม่สามารถเปิดกล้องได้: " + err));
+      .catch(err => alert("เปิดกล้องไม่ได้: " + err));
 
-    snapBtn.onclick = () => {
-      const context = canvas.getContext('2d');
+    // ฟังก์ชันจับภาพในกรอบ overlay
+    async function checkFrameForIDCard() {
+      if (!scanning) return;
+
+      const ctx = canvas.getContext('2d');
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      const imageData = canvas.toDataURL('image/png');
-      result.textContent = '🔍 กำลังสแกน OCR...';
+      // วาดภาพจาก video
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      Tesseract.recognize(
-        imageData,
-        'tha+eng',
-        { logger: m => console.log(m) }
-      ).then(({ data: { text } }) => {
-        result.textContent = '📄 ผล OCR:\n\n' + text;
-      });
+      // ตัดเฉพาะภาพในกรอบ overlay (กลางจอ 90% x 50%)
+      const x = canvas.width * 0.05;
+      const y = canvas.height * 0.25;
+      const w = canvas.width * 0.9;
+      const h = canvas.height * 0.5;
+      const imageData = ctx.getImageData(x, y, w, h);
+
+      // แปลงภาพในกรอบเป็น base64
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = w;
+      tempCanvas.height = h;
+      tempCanvas.getContext('2d').putImageData(imageData, 0, 0);
+      const base64Image = tempCanvas.toDataURL('image/png');
+
+      result.textContent = "🔍 ตรวจจับบัตร...";
+
+      try {
+        const { data: { text } } = await Tesseract.recognize(
+          base64Image,
+          'tha+eng',
+          { logger: m => console.log(m) }
+        );
+
+        // ตรวจว่ามีเลขบัตร 13 หลักในข้อความหรือไม่
+        const idMatch = text.match(/\d{13}/);
+        if (idMatch) {
+          scanning = false;
+          result.textContent = `📄 พบข้อมูล:\n\n${text}`;
+        } else {
+          result.textContent = "📷 กำลังตรวจจับ...";
+        }
+      } catch (e) {
+        console.error("OCR error", e);
+      }
+
+      if (scanning) {
+        setTimeout(checkFrameForIDCard, 1500); // ลองใหม่ทุก 1.5 วินาที
+      }
+    }
+
+    // เริ่มตรวจจับเมื่อกล้องพร้อม
+    video.onloadeddata = () => {
+      setTimeout(checkFrameForIDCard, 1000);
     };
   </script>
 </body>
