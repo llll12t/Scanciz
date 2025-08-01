@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ข้อมูลสมาชิก</title>
+    <script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #0D2A56; --primary-yellow: #FFB900; --light-bg: #F5F7FA;
+            --white: #FFFFFF; --dark-text: #333333; --light-text: #888888; --border-color: #EEEEEE;
+        }
+        body { margin: 0; font-family: 'Sarabun', sans-serif; background-color: var(--light-bg); color: var(--dark-text); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 10px; }
+        .app-container { width: 100%; max-width: 420px; background-color: var(--white); border-radius: 24px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1); overflow: hidden; display: flex; flex-direction: column; min-height: 80vh; }
+        .app-header { background-color: var(--primary-blue); color: var(--white); padding: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .app-header h1 { margin: 0; font-size: 1.25em; font-weight: 600; }
+        .profile-icon { width: 40px; height: 40px; background-color: rgba(255, 255, 255, 0.2); border-radius: 12px; }
+        main { padding: 25px; flex-grow: 1; }
+        .screen { display: none; }
+        .screen.active { display: block; }
+        .card { background-color: var(--white); border-radius: 16px; padding: 20px; border: 1px solid var(--border-color); }
+        button { width: 100%; padding: 15px; border: none; border-radius: 12px; font-size: 1em; font-weight: 700; font-family: 'Sarabun', sans-serif; cursor: pointer; transition: opacity 0.3s; }
+        button:hover { opacity: 0.9; }
+        button:disabled { background-color: #a0a0a0; cursor: not-allowed; }
+        .btn-primary { background-color: var(--primary-yellow); color: var(--dark-text); }
+        .btn-dark { background-color: var(--primary-blue); color: var(--white); }
+        .btn-secondary { background-color: var(--white); color: var(--dark-text); border: 1px solid var(--border-color); }
+        .button-group { display: flex; gap: 15px; margin-top: 25px; }
+        #home-screen .info-box { width: 100%; height: 200px; border: 1px dashed var(--border-color); border-radius: 16px; margin-bottom: 25px; }
+        #details-screen .card { display: flex; gap: 20px; }
+        .info-details p { margin: 0 0 10px 0; font-size: 0.95em; }
+        .info-details p strong { display: block; font-size: 1.1em; color: var(--dark-text); }
+        .info-details .status-tag { display: inline-block; padding: 5px 12px; border-radius: 20px; font-weight: 600; }
+        .status-tag.waiting { background-color: #fff0c7; color: #d18c00; }
+        .status-tag.checked-in { background-color: #d4edda; color: #155724; }
+        .seat-box { background-color: var(--primary-blue); color: var(--white); width: 100px; height: 100px; border-radius: 16px; display: flex; flex-direction: column; justify-content: center; align-items: center; flex-shrink: 0; }
+        .seat-box span { font-size: 0.9em; }
+        .seat-box strong { font-size: 2.5em; font-weight: 700; line-height: 1.1; }
+        .profile-placeholder { width: 80px; height: 80px; background-color: #e0e0e0; border-radius: 12px; margin-bottom: 15px; }
+        #message-box { text-align: center; margin-top: 20px; font-weight: bold; padding: 12px; border-radius: 8px; display: none; }
+        .message-success { background-color: #d4edda; color: #155724; }
+        .message-error { background-color: #f8d7da; color: #721c24; }
+        #camera-scanner-screen { text-align: center; }
+        #video-feed { width: 100%; max-width: 400px; height: auto; border-radius: 16px; border: 2px solid var(--border-color); transform: scaleX(-1); }
+        #ocr-status { margin: 15px 0; font-weight: 600; color: var(--primary-blue); }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <h1>ข้อมูลสมาชิก</h1>
+            <div class="profile-icon"></div>
+        </header>
+        <main>
+            <div id="home-screen" class="screen active">
+                <div class="info-box"></div>
+                <div class="button-group">
+                    <button class="btn-dark" onclick="alert('ยังไม่เปิดใช้งานฟังก์ชันนี้')">ประวัติ</button>
+                    <button class="btn-primary" onclick="initCameraScanner()">ตรวจสอบ บัตร ปชช</button>
+                </div>
+            </div>
+
+            <div id="camera-scanner-screen" class="screen">
+                <video id="video-feed" autoplay playsinline></video>
+                <p id="ocr-status">กรุณาจัดให้บัตรประชาชนอยู่ในกรอบ</p>
+                <div class="button-group">
+                    <button class="btn-secondary" onclick="stopCamera()">ยกเลิก</button>
+                    <button id="capture-btn" class="btn-primary" onclick="captureAndRecognize()">สแกนข้อมูล</button>
+                </div>
+            </div>
+
+            <div id="details-screen" class="screen">
+                <div class="card">
+                    <div class="info-details">
+                        <div class="profile-placeholder"></div>
+                        <p><strong>ชื่อ - สกุล:</strong> <span id="detail-name"></span></p>
+                        <p><strong>รหัสนักศึกษา:</strong> <span id="detail-student-id"></span></p>
+                        <p><strong>เลขบัตรประชาชน:</strong> <span id="detail-national-id"></span></p>
+                        <p><strong>หลักสูตร:</strong> <span id="detail-course"></span></p>
+                        <p><strong>สถานะ:</strong> <span id="detail-status"></span></p>
+                    </div>
+                    <div class="seat-box">
+                        <span>เลขที่นั่ง</span>
+                        <strong id="detail-seat"></strong>
+                    </div>
+                </div>
+                <div id="message-box"></div>
+                <div class="button-group">
+                    <button class="btn-secondary" id="cancel-button" onclick="stopCamera()">ยกเลิก</button>
+                    <button class="btn-primary" id="confirm-button" onclick="handleConfirm()">ยืนยันข้อมูล</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <canvas id="canvas" style="display:none;"></canvas>
+
+    <script>
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwBBbtIE7WwUG2IgaXvXU_Z42vxOngXDkhkhG6ADld4jChcBeerWXGZkezLChBkLwIs/exec'; // ⚠️ สำคัญ: แก้ไข URL ตรงนี้
+        let currentMemberData = null;
+        let videoStream = null;
+
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(screen => screen.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+            hideMessage();
+        }
+
+        function showMessage(text, type) {
+            const msgBox = document.getElementById('message-box');
+            msgBox.textContent = text;
+            msgBox.className = type === 'success' ? 'message-success' : 'message-error';
+            msgBox.style.display = 'block';
+        }
+
+        function hideMessage() {
+            document.getElementById('message-box').style.display = 'none';
+        }
+
+        async function initCameraScanner() {
+            showScreen('camera-scanner-screen');
+            const video = document.getElementById('video-feed');
+            const statusDiv = document.getElementById('ocr-status');
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                video.srcObject = stream;
+                videoStream = stream;
+                statusDiv.textContent = 'กล้องพร้อมใช้งาน';
+            } catch (err) {
+                statusDiv.textContent = 'ไม่สามารถเปิดกล้องได้';
+                alert('เกิดข้อผิดพลาดในการเปิดกล้อง โปรดตรวจสอบการอนุญาต');
+            }
+        }
+
+        function stopCamera() {
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+            }
+            showScreen('home-screen');
+        }
+
+        async function captureAndRecognize() {
+            const video = document.getElementById('video-feed');
+            const canvas = document.getElementById('canvas');
+            const statusDiv = document.getElementById('ocr-status');
+            const captureBtn = document.getElementById('capture-btn');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+            statusDiv.textContent = 'กำลังประมวลผลภาพ...';
+            captureBtn.disabled = true;
+            captureBtn.textContent = '...';
+
+            try {
+                const { data: { text } } = await Tesseract.recognize(canvas, 'tha+eng');
+                statusDiv.textContent = 'กำลังค้นหาเลขบัตร...';
+                const idMatch = text.match(/\d{1}\s?\d{4}\s?\d{5}\s?\d{2}\s?\d{1}/);
+                if (idMatch && idMatch[0]) {
+                    const foundId = idMatch[0].replace(/\s/g, '');
+                    await handleSearch(foundId);
+                } else {
+                    alert('ไม่สามารถสแกนเลขบัตรประชาชนได้ กรุณาลองใหม่');
+                    statusDiv.textContent = 'ไม่พบเลขบัตรประชาชน ลองอีกครั้ง';
+                }
+            } catch (error) {
+                statusDiv.textContent = 'เกิดข้อผิดพลาดในการประมวลผล';
+            } finally {
+                captureBtn.disabled = false;
+                captureBtn.textContent = 'สแกนข้อมูล';
+            }
+        }
+
+        async function handleSearch(id) {
+            document.getElementById('ocr-status').textContent = `พบเลขบัตร: ${id}. กำลังค้นหา...`;
+            try {
+                const response = await fetch(`${WEB_APP_URL}?action=search&id=${id}`);
+                const data = await response.json();
+                if (data.found) {
+                    if (videoStream) stopCamera(); // Stop camera only after a successful search
+                    showDetails(data);
+                } else {
+                    alert(`ไม่พบข้อมูลสำหรับเลขบัตร: ${id}`);
+                    document.getElementById('ocr-status').textContent = 'ไม่พบข้อมูลในระบบ';
+                }
+            } catch (error) {
+                alert('การเชื่อมต่อเพื่อค้นหาข้อมูลล้มเหลว');
+                document.getElementById('ocr-status').textContent = 'การเชื่อมต่อผิดพลาด';
+            }
+        }
+
+        function showDetails(data) {
+            currentMemberData = data;
+            document.getElementById('detail-name').textContent = data.name;
+            document.getElementById('detail-student-id').textContent = data.studentId;
+            document.getElementById('detail-national-id').textContent = data.id;
+            document.getElementById('detail-course').textContent = data.course;
+            document.getElementById('detail-seat').textContent = data.seat;
+            const statusSpan = document.getElementById('detail-status');
+
+            if (data.status === 'เข้าร่วมแล้ว') {
+                statusSpan.textContent = 'ยืนยันแล้ว';
+                statusSpan.className = 'status-tag checked-in';
+                document.getElementById('confirm-button').style.display = 'none';
+            } else {
+                statusSpan.textContent = 'รอการยืนยัน';
+                statusSpan.className = 'status-tag waiting';
+                document.getElementById('confirm-button').style.display = 'block';
+            }
+            showScreen('details-screen');
+        }
+
+        async function handleConfirm() {
+            if (!currentMemberData) return;
+            const confirmButton = document.getElementById('confirm-button');
+            confirmButton.disabled = true;
+            confirmButton.textContent = 'กำลังบันทึก...';
+            try {
+                const response = await fetch(WEB_APP_URL, {
+                    method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ action: 'confirm', id: currentMemberData.id })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    showMessage('ยืนยันข้อมูลสำเร็จ!', 'success');
+                    setTimeout(() => showScreen('home-screen'), 2000);
+                } else {
+                    showMessage(`เกิดข้อผิดพลาด: ${result.message}`, 'error');
+                    confirmButton.disabled = false;
+                    confirmButton.textContent = 'ยืนยันข้อมูล';
+                }
+            } catch (error) {
+                showMessage('การเชื่อมต่อผิดพลาด', 'error');
+                confirmButton.disabled = false;
+                confirmButton.textContent = 'ยืนยันข้อมูล';
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => { showScreen('home-screen'); });
+    </script>
+</body>
+</html>
