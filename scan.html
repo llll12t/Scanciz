@@ -1,3 +1,12 @@
+ได้เลยครับ เราจะย้อนกลับไปใช้ CSS ที่เขียนในแท็ก `<style>` เหมือนเดิม และลบ Tailwind CSS ออกทั้งหมด
+
+นี่คือโค้ด `index.html` ฉบับสมบูรณ์ที่ปรับกลับมาใช้ CSS แบบเดิมให้แล้วครับ คุณสามารถคัดลอกทั้งหมดนี้ไปวางทับไฟล์ `index.html` ของคุณได้เลย
+
+-----
+
+### โค้ด `index.html` (ใช้ CSS แบบเดิม ไม่มี Tailwind)
+
+```html
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -5,159 +14,177 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ข้อมูลสมาชิก</title>
     
-    <script src="https://cdn.tailwindcss.com"></script>
-
     <script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=sarabun:wght@400;600;700&display=swap" rel="stylesheet">
 
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        'sarabun': ['Sarabun', 'sans-serif'],
-                    },
-                    colors: {
-                        'primary-blue': '#0D2A56',
-                        'primary-yellow': '#FFB900',
-                    }
-                }
-            }
+    <style>
+        :root {
+            --primary-blue: #0D2A56;
+            --primary-yellow: #FFB900;
+            --light-bg: #F5F7FA;
+            --white: #FFFFFF;
+            --dark-text: #333333;
+            --light-text: #888888;
+            --border-color: #EEEEEE;
         }
-    </script>
+        body { margin: 0; font-family: 'Sarabun', sans-serif; background-color: var(--light-bg); color: var(--dark-text); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 10px; }
+        .app-container { width: 100%; max-width: 420px; height: 95vh; max-height: 800px; background-color: var(--white); border-radius: 24px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1); overflow: hidden; display: flex; flex-direction: column; }
+        .app-header { background-color: var(--primary-blue); color: var(--white); padding: 20px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+        .app-header h1 { margin: 0; font-size: 1.25em; font-weight: 600; }
+        .profile-icon { width: 40px; height: 40px; background-color: rgba(255, 255, 255, 0.2); border-radius: 12px; }
+        main { padding: 25px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; overflow-y: auto; }
+        .screen { display: none; height: 100%; flex-direction: column; justify-content: space-between; }
+        .screen.active { display: flex; }
+        .card { background-color: var(--white); border-radius: 16px; padding: 20px; border: 1px solid var(--border-color); }
+        .card p { margin: 0 0 12px 0; font-size: 1em; line-height: 1.4; }
+        .card p strong { color: var(--dark-text); font-weight: 600; }
+        .card p span { color: var(--light-text); font-weight: 400; }
+        button { width: 100%; padding: 15px; border: none; border-radius: 12px; font-size: 1em; font-weight: 700; font-family: 'Sarabun', sans-serif; cursor: pointer; transition: opacity 0.3s; }
+        button:hover { opacity: 0.9; }
+        button:disabled { background-color: #a0a0a0; cursor: not-allowed; }
+        .btn-primary { background-color: var(--primary-yellow); color: var(--dark-text); }
+        .btn-dark { background-color: var(--primary-blue); color: var(--white); }
+        .btn-secondary { background-color: var(--white); color: var(--dark-text); border: 1px solid var(--border-color); }
+        .button-group { display: flex; gap: 15px; margin-top: 25px; }
+        #home-screen .info-box { flex-grow: 1; width: 100%; border: 1px dashed var(--border-color); border-radius: 16px; margin-bottom: 25px; }
+        #details-screen .card { display: flex; gap: 20px; }
+        .info-details p { margin: 0 0 10px 0; font-size: 0.95em; }
+        .info-details p strong { display: block; font-size: 1.1em; color: var(--dark-text); }
+        .info-details .status-tag { display: inline-block; padding: 5px 12px; border-radius: 20px; font-weight: 600; font-size: 0.9em; }
+        .status-tag.waiting { background-color: #fff0c7; color: #d18c00; }
+        .status-tag.checked-in { background-color: #d4edda; color: #155724; }
+        .seat-box { background-color: var(--primary-blue); color: var(--white); width: 100px; height: 100px; border-radius: 16px; display: flex; flex-direction: column; justify-content: center; align-items: center; flex-shrink: 0; }
+        .seat-box span { font-size: 0.9em; }
+        .seat-box strong { font-size: 2.5em; font-weight: 700; line-height: 1.1; }
+        .profile-placeholder { width: 80px; height: 80px; background-color: #e0e0e0; border-radius: 12px; margin-bottom: 15px; }
+        #message-box { text-align: center; margin-top: 20px; font-weight: bold; padding: 12px; border-radius: 8px; display: none; }
+        .message-success { background-color: #d4edda; color: #155724; }
+        .message-error { background-color: #f8d7da; color: #721c24; }
+        #camera-scanner-screen { text-align: center; position: relative; }
+        #camera-feed-container { position: relative; width: 100%; flex-grow: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 16px; margin-bottom: 15px; background-color: black;}
+        #video-feed { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
+        #card-frame { position: absolute; width: 90%; height: 0; padding-bottom: 56.25%; border: 3px solid rgba(255, 255, 255, 0.9); border-radius: 12px; box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6); }
+        #ocr-status { margin: 15px 0; font-weight: 600; color: var(--primary-blue); min-height: 24px;}
+        #log-list .log-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 5px; border-bottom: 1px solid var(--border-color); }
+        #log-list .log-item:last-child { border-bottom: none; }
+        #log-list .log-time { font-size: 0.8em; color: var(--light-text); }
+        #log-list .log-details { text-align: right; }
+        #log-list .log-name { font-weight: 600; }
+        #log-list .log-id { font-size: 0.9em; color: var(--light-text); }
+        #manual-input-screen input { width: 100%; text-align: center; font-size: 1.5em; border: none; border-bottom: 2px solid var(--primary-blue); padding: 10px 0; letter-spacing: 2px; }
+        #manual-input-screen input:focus { outline: none; }
+    </style>
 </head>
-
-<body class="bg-slate-100 font-sarabun flex items-center justify-center min-h-screen p-2.5">
-
-    <div class="w-full max-w-md h-[95vh] max-h-[800px] bg-white rounded-3xl shadow-xl overflow-hidden flex flex-col">
-        
-        <header class="bg-primary-blue text-white p-5 flex justify-between items-center flex-shrink-0">
-            <h1 class="text-xl font-semibold">ข้อมูลสมาชิก</h1>
-            <div class="w-10 h-10 bg-white/20 rounded-xl"></div>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <h1>ข้อมูลสมาชิก</h1>
+            <div class="profile-icon"></div>
         </header>
-
-        <main class="p-6 flex-grow flex flex-col justify-between">
-
-            <div id="home-screen" class="hidden h-full flex-col justify-between">
-                <div class="flex-grow w-full border border-dashed border-slate-300 rounded-2xl mb-6"></div>
-                <div class="flex items-center gap-4">
-                    <button class="w-full py-3 px-4 rounded-xl font-bold bg-primary-blue text-white" onclick="showHistory()">ประวัติ</button>
-                    <button class="w-full py-3 px-4 rounded-xl font-bold bg-primary-yellow text-primary-blue" onclick="initCameraScanner()">ตรวจสอบ บัตร ปชช</button>
+        <main>
+            <div id="home-screen" class="screen active">
+                <div class="info-box"></div>
+                <div class="button-group">
+                    <button class="btn-dark" onclick="showHistory()">ประวัติ</button>
+                    <button class="btn-primary" onclick="initCameraScanner()">ตรวจสอบ บัตร ปชช</button>
                 </div>
             </div>
 
-            <div id="camera-scanner-screen" class="hidden h-full flex-col justify-between text-center">
-                <div class="relative w-full flex-grow flex items-center justify-center overflow-hidden rounded-2xl mb-4 bg-black">
-                    <video id="video-feed" class="absolute top-0 left-0 w-full h-full object-cover" autoplay playsinline></video>
-                    <div id="card-frame" class="absolute w-[90%] pt-[56.25%] border-4 border-white/80 rounded-2xl shadow-[0_0_0_9999px_rgba(0,0,0,0.6)]"></div>
+            <div id="camera-scanner-screen" class="screen">
+                <div id="camera-feed-container">
+                    <video id="video-feed" autoplay playsinline></video>
+                    <div id="card-frame"></div>
                 </div>
-                <p id="ocr-status" class="font-semibold text-primary-blue min-h-[24px]">กำลังเริ่มต้นกล้อง...</p>
-                <div class="flex items-center gap-4 mt-4">
-                    <button class="w-full py-3 px-4 rounded-xl font-bold bg-white text-slate-700 border border-slate-200" onclick="showScreen('manual-input-screen')">กรอกรหัสเอง</button>
-                    <button class="w-full py-3 px-4 rounded-xl font-bold bg-white text-slate-700 border border-slate-200" onclick="stopCamera()">ยกเลิก</button>
+                <p id="ocr-status">กำลังเริ่มต้นกล้อง...</p>
+                <div class="button-group">
+                    <button class="btn-secondary" style="flex:1" onclick="showScreen('manual-input-screen')">กรอกรหัสเอง</button>
+                    <button class="btn-secondary" style="flex:1" onclick="stopCamera()">ยกเลิก</button>
                 </div>
             </div>
 
-            <div id="manual-input-screen" class="hidden h-full flex-col justify-between">
+            <div id="manual-input-screen" class="screen">
                 <div>
-                    <h3 class="text-center text-xl font-semibold">กรอกเลขบัตรประชาชน</h3>
-                    <div class="bg-white rounded-2xl border border-slate-200 p-8 my-4">
-                        <input type="tel" id="manual-id-input" pattern="[0-9]*" placeholder="xxxxxxxxxxxxx" class="w-full text-center text-2xl tracking-widest border-none border-b-2 border-primary-blue py-2 focus:ring-0">
+                    <h3 style="text-align:center;">กรอกเลขบัตรประชาชน</h3>
+                    <div class="card" style="padding: 30px;">
+                        <input type="tel" id="manual-id-input" pattern="[0-9]*" placeholder="xxxxxxxxxxxxx">
                     </div>
-                    <div id="manual-search-status" class="text-center text-red-600 min-h-[20px]"></div>
+                    <div id="manual-search-status" style="text-align:center; color: red; margin-top: 15px; min-height: 20px;"></div>
                 </div>
-                <div class="flex items-center gap-4">
-                    <button class="w-full py-3 px-4 rounded-xl font-bold bg-white text-slate-700 border border-slate-200" onclick="showScreen('home-screen')">กลับหน้าหลัก</button>
-                    <button class="w-full py-3 px-4 rounded-xl font-bold bg-primary-yellow text-primary-blue" onclick="handleManualSearch()">ค้นหา</button>
+                <div class="button-group">
+                    <button class="btn-secondary" onclick="showScreen('home-screen')">กลับหน้าหลัก</button>
+                    <button class="btn-primary" onclick="handleManualSearch()">ค้นหา</button>
+                </div>
+            </div>
+            
+             <div id="history-screen" class="screen">
+                <div>
+                     <h3 style="text-align:center; margin-top:0;">ประวัติการเช็คอินล่าสุด</h3>
+                     <div id="log-list" class="card" style="padding: 5px 20px; max-height: 50vh; overflow-y: auto;">
+                        </div>
+                </div>
+                <div class="button-group">
+                    <button class="btn-secondary" onclick="showScreen('home-screen')">กลับหน้าหลัก</button>
                 </div>
             </div>
 
-            <div id="history-screen" class="hidden h-full flex-col justify-between">
+            <div id="details-screen" class="screen">
                 <div>
-                    <h3 class="text-center text-xl font-semibold mb-4">ประวัติการเช็คอินล่าสุด</h3>
-                    <div id="log-list" class="bg-white rounded-2xl border border-slate-200 p-5 min-h-[200px]">
+                    <div class="card">
+                        <div class="info-details">
+                            <div class="profile-placeholder"></div>
+                            <p><strong>ชื่อ - สกุล:</strong> <span id="detail-name"></span></p>
+                            <p><strong>รหัสนักศึกษา:</strong> <span id="detail-student-id"></span></p>
+                            <p><strong>เลขบัตรประชาชน:</strong> <span id="detail-national-id"></span></p>
+                            <p><strong>หลักสูตร:</strong> <span id="detail-course"></span></p>
+                            <p><strong>สถานะ:</strong> <span id="detail-status"></span></p>
                         </div>
-                </div>
-                <div class="mt-6">
-                    <button class="w-full py-3 px-4 rounded-xl font-bold bg-white text-slate-700 border border-slate-200" onclick="showScreen('home-screen')">กลับหน้าหลัก</button>
-                </div>
-            </div>
-
-            <div id="details-screen" class="hidden h-full flex-col justify-between">
-                <div>
-                    <div class="bg-white rounded-2xl border border-slate-200 p-5 flex gap-4">
-                        <div class="flex-grow">
-                            <div class="w-20 h-20 bg-slate-200 rounded-xl mb-4"></div>
-                            <p class="text-lg font-bold text-primary-blue"><span id="detail-name"></span></p>
-                            <p class="text-sm text-slate-500">รหัสนักศึกษา: <span id="detail-student-id"></span></p>
-                            <p class="text-sm text-slate-500">เลขบัตร: <span id="detail-national-id"></span></p>
-                            <p class="text-sm text-slate-500">หลักสูตร: <span id="detail-course"></span></p>
-                            <p class="mt-2">สถานะ: <span id="detail-status" class="font-semibold text-sm py-1 px-3 rounded-full"></span></p>
-                        </div>
-                        <div class="flex-shrink-0 bg-primary-blue text-white w-24 h-24 rounded-2xl flex flex-col items-center justify-center">
-                            <span class="text-sm">เลขที่นั่ง</span>
-                            <strong id="detail-seat" class="text-4xl font-bold leading-tight"></strong>
+                        <div class="seat-box">
+                            <span>เลขที่นั่ง</span>
+                            <strong id="detail-seat"></strong>
                         </div>
                     </div>
-                    <div id="message-box" class="hidden text-center font-bold p-3 rounded-lg mt-5"></div>
+                    <div id="message-box"></div>
                 </div>
-                <div class="flex items-center gap-4 mt-6">
-                    <button id="cancel-button" class="w-full py-3 px-4 rounded-xl font-bold bg-white text-slate-700 border border-slate-200" onclick="initCameraScanner()">สแกนคนถัดไป</button>
-                    <button id="confirm-button" class="w-full py-3 px-4 rounded-xl font-bold bg-primary-yellow text-primary-blue" onclick="handleConfirm()">ยืนยันการเข้าร่วม</button>
+                <div class="button-group">
+                    <button class="btn-secondary" id="cancel-button" onclick="initCameraScanner()">สแกนคนถัดไป</button>
+                    <button class="btn-primary" id="confirm-button" onclick="handleConfirm()">ยืนยันการเข้าร่วม</button>
                 </div>
             </div>
-
         </main>
     </div>
 
-    <canvas id="canvas" class="hidden"></canvas>
+    <canvas id="canvas" style="display:none;"></canvas>
 
-   
-   <script>
+    <script>
         const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwBBbtIE7WwUG2IgaXvXU_Z42vxOngXDkhkhG6ADld4jChcBeerWXGZkezLChBkLwIs/exec'; // ⚠️ สำคัญ: แก้ไข URL ตรงนี้
         let currentMemberData = {};
         let videoStream = null;
         let scanInterval = null;
         let isProcessing = false;
 
-        /**
-         * ฟังก์ชันสลับหน้าจอที่แก้ไขใหม่
-         * @param {string} screenId - ID ของ div หน้าจอที่ต้องการแสดง
-         */
         function showScreen(screenId) {
-            // ซ่อนทุกหน้าจอ .screen ที่อยู่ใน <main>
             document.querySelectorAll('main > .screen').forEach(screen => {
-                screen.classList.add('hidden');
-                screen.classList.remove('flex');
+                screen.classList.remove('active');
             });
-
-            // แสดงเฉพาะหน้าจอเป้าหมาย
             const activeScreen = document.getElementById(screenId);
             if (activeScreen) {
-                activeScreen.classList.remove('hidden');
-                activeScreen.classList.add('flex');
+                activeScreen.classList.add('active');
             }
-            
             hideMessage();
         }
 
         function showMessage(text, type) {
             const msgBox = document.getElementById('message-box');
             msgBox.textContent = text;
-            msgBox.className = 'text-center font-bold p-3 rounded-lg mt-5 '; // Reset classes
-            if (type === 'success') {
-                msgBox.classList.add('bg-green-100', 'text-green-800');
-            } else {
-                msgBox.classList.add('bg-red-100', 'text-red-800');
-            }
-            msgBox.classList.remove('hidden');
+            msgBox.className = 'message ' + (type === 'success' ? 'message-success' : 'message-error');
+            msgBox.style.display = 'block';
         }
 
         function hideMessage() {
-            document.getElementById('message-box').classList.add('hidden');
+            document.getElementById('message-box').style.display = 'none';
         }
 
         async function initCameraScanner() {
@@ -247,7 +274,7 @@
         async function showHistory() {
             showScreen('history-screen');
             const logListDiv = document.getElementById('log-list');
-            logListDiv.innerHTML = '<p class="text-center text-slate-500">กำลังโหลด...</p>';
+            logListDiv.innerHTML = '<p style="text-align:center;">กำลังโหลด...</p>';
 
             try {
                 const response = await fetch(`${WEB_APP_URL}?action=getLog`);
@@ -257,22 +284,22 @@
                     logListDiv.innerHTML = '';
                     result.data.forEach(log => {
                         const item = document.createElement('div');
-                        item.className = 'flex justify-between items-center py-3 border-b border-slate-200 last:border-b-0';
-                        const logTime = new Date(log[0]).toLocaleString('th-TH', { hour: '2-digit', minute: '2-digit' });
+                        item.className = 'log-item';
+                        const logTime = new Date(log[0]).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' });
                         item.innerHTML = `
-                            <div class="text-sm text-slate-500">${logTime}</div>
-                            <div class="text-right">
-                                <div class="font-semibold">${log[2]}</div>
-                                <div class="text-sm text-slate-500">${log[1]}</div>
+                            <div class="log-time">${logTime} น.</div>
+                            <div class="log-details">
+                                <div class="log-name">${log[2]}</div>
+                                <div class="log-id">${log[1]}</div>
                             </div>
                         `;
                         logListDiv.appendChild(item);
                     });
                 } else {
-                     logListDiv.innerHTML = '<p class="text-center text-slate-500">ยังไม่มีข้อมูลประวัติ</p>';
+                     logListDiv.innerHTML = '<p style="text-align:center;">ยังไม่มีข้อมูลประวัติ</p>';
                 }
             } catch(error) {
-                logListDiv.innerHTML = '<p class="text-center text-red-600">ไม่สามารถโหลดข้อมูลได้</p>';
+                logListDiv.innerHTML = '<p style="text-align:center; color:red;">ไม่สามารถโหลดข้อมูลได้</p>';
             }
         }
 
@@ -307,14 +334,14 @@
             const statusSpan = document.getElementById('detail-status');
             const confirmBtn = document.getElementById('confirm-button');
 
-            statusSpan.className = "font-semibold text-sm py-1 px-3 rounded-full";
+            statusSpan.className = "status-tag";
             if (data.status === 'เข้าร่วมแล้ว') {
                 statusSpan.textContent = 'ยืนยันแล้ว';
-                statusSpan.classList.add('bg-green-100', 'text-green-800');
+                statusSpan.classList.add('checked-in');
                 confirmBtn.style.display = 'none';
             } else {
                 statusSpan.textContent = 'รอการยืนยัน';
-                statusSpan.classList.add('bg-yellow-100', 'text-yellow-800');
+                statusSpan.classList.add('waiting');
                 confirmBtn.style.display = 'block';
             }
             showScreen('details-screen');
@@ -348,6 +375,6 @@
         
         document.addEventListener('DOMContentLoaded', () => { showScreen('home-screen'); });
     </script>
-
 </body>
 </html>
+```
