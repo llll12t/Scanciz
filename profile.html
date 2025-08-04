@@ -99,7 +99,6 @@
             try {
                 const response = await fetch(WEB_APP_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         action: 'updateLineId',
                         data: { citizenId: citizenId, lineUserId: lineUserId }
