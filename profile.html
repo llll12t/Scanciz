@@ -41,10 +41,12 @@
                 </div>
                 <button type="submit" id="submit-button" class="w-full bg-primary-yellow text-primary-blue font-bold py-3 px-5 rounded-lg">ยืนยันการลงทะเบียน</button>
             </form>
+             <div id="status-message-container" class="mt-4 min-h-[24px]">
+                 <p id="status-message" class="font-semibold"></p>
+             </div>
             <div id="success-view" class="hidden">
-                 <p id="status-message" class="mt-4 min-h-[24px] font-semibold text-green-600"></p>
                  <button id="check-data-button" class="w-full mt-4 bg-primary-blue text-white font-bold py-3 px-5 rounded-lg">
-                    ตรวจสอบข้อมูล (5)
+                     ตรวจสอบข้อมูล (5)
                  </button>
             </div>
         </div>
@@ -52,7 +54,7 @@
 
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <script>
-        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbypzA8mOVHpkx8-SOzszGLbbNMmpF4tyRlIKW8jdxN7cboVe6J6mO2MYb0W3NBG5k__Gg/exec';
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbypzA8mOVHpkx8-SOzszGLbbNMmpF4tyRlIKW8jdxN7cboVe6J6mO2MYb0W3NBG5k__Gg/exec'; // ⚠️ **สำคัญ: แก้ไขเป็น URL ของคุณ**
         let lineUserId = null;
 
         async function main() {
@@ -96,7 +98,7 @@
             document.getElementById('profile-name').textContent = data.name;
             document.getElementById('profile-student-id').textContent = data.studentId;
             document.getElementById('profile-course').textContent = data.course;
-            document.getElementById('profile-seat').textContent = data.seat; // แสดงเลขที่นั่ง
+            document.getElementById('profile-seat').textContent = data.seat;
             
             document.getElementById('register-view').classList.add('hidden');
             document.getElementById('profile-view').classList.remove('hidden');
@@ -110,6 +112,7 @@
 
             submitBtn.disabled = true;
             submitBtn.textContent = 'กำลังบันทึก...';
+            statusDiv.textContent = ''; // Clear previous messages
 
             try {
                 const response = await fetch(WEB_APP_URL, {
@@ -117,7 +120,8 @@
                     body: JSON.stringify({
                         action: 'updateLineId',
                         data: { citizenId: citizenId, lineUserId: lineUserId }
-                    })
+                    }),
+                    headers: { 'Content-Type': 'application/json' }
                 });
                 const result = await response.json();
                 
@@ -126,10 +130,10 @@
                     const successView = document.getElementById('success-view');
                     successView.classList.remove('hidden');
                     statusDiv.textContent = result.message;
+                    statusDiv.className = 'font-semibold text-green-600';
 
                     const checkBtn = document.getElementById('check-data-button');
                     let countdown = 5;
-                    // สร้างตัวแปร interval นอก scope ของ onclick
                     let interval = setInterval(() => {
                         countdown--;
                         checkBtn.textContent = `ตรวจสอบข้อมูล (${countdown})`;
@@ -140,23 +144,20 @@
                     }, 1000);
                     
                     checkBtn.onclick = () => {
-                        clearInterval(interval); // หยุด countdown ถ้ากดปุ่ม
+                        clearInterval(interval); // Stop countdown if button is clicked
                         checkRegistrationStatus(lineUserId);
                     };
 
                 } else {
-                    const registerView = document.getElementById('register-view');
                     statusDiv.textContent = result.message || 'เกิดข้อผิดพลาด';
-                    statusDiv.className = 'mt-4 min-h-[24px] font-semibold text-red-600';
+                    statusDiv.className = 'font-semibold text-red-600';
                     submitBtn.disabled = false;
                     submitBtn.textContent = 'ยืนยันการลงทะเบียน';
                 }
 
             } catch (e) {
-                const registerView = document.getElementById('register-view');
-                const statusDiv = registerView.querySelector('#status-message'); // หา statusDiv ภายใน register-view
                 statusDiv.textContent = 'การเชื่อมต่อล้มเหลว';
-                statusDiv.className = 'mt-4 min-h-[24px] font-semibold text-red-600';
+                statusDiv.className = 'font-semibold text-red-600';
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'ยืนยันการลงทะเบียน';
             }
