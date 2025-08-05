@@ -12,7 +12,7 @@
         }
     </script>
 </head>
-<body class="bg-slate-100 font-sarabun flex items-center justify-center ">
+<body class="bg-slate-100 font-sarabun flex items-center justify-center  min-h-screen">
 
     <div class="w-full max-w-sm mx-auto p-4">
         <div id="loading-state" class="text-center">
@@ -36,8 +36,10 @@
             </div>
         
         <div id="register-view" class="hidden bg-white p-8 rounded-2xl shadow-lg text-center">
-            <h1 class="text-2xl font-bold text-primary-blue mb-2">ลงทะเบียน</h1>
-            <p class="text-slate-500 mb-6">กรุณากรอกเลขบัตรประชาชน 13 หลักเพื่อยืนยันตัวตน</p>
+            <h1 class="text-2xl font-bold text-primary-blue mb-2">ตรวจสอบเลขที่นั่ง</h1>
+            <p class="text-slate-500 ">กรุณากรอกเลขบัตรประชาชน 13 หลัก</p>
+            <p class="text-slate-500 mb-6">เพื่อยืนยันตัวตน</p>
+
             <form id="liff-form" onsubmit="handleRegister(event)">
                 <div class="mb-4">
                     <input type="tel" id="citizen-id-input" pattern="[0-9]*" maxlength="13" placeholder="เลขบัตรประชาชน" class="w-full text-center text-xl tracking-wider p-3 border-2 border-slate-200 rounded-lg" required>
