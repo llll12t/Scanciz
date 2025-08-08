@@ -523,7 +523,7 @@
             showScreen('details-screen');
         }
 
-        async function handleConfirm() {
+       async function handleConfirm() {
             if (!currentMemberData.sheet) return;
             const confirmButton = document.getElementById('confirm-button');
             const nextButton = document.getElementById('cancel-button');
@@ -535,17 +535,30 @@
             try {
                 const response = await fetch(WEB_APP_URL, {
                     method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    // Data sent for confirmation remains the same
                     body: JSON.stringify({ action: 'confirm', id: currentMemberData.sheet.id, name: currentMemberData.sheet.name, course: currentMemberData.sheet.course })
                 });
                 const result = await response.json();
                 if (result.success) {
                     showMessage('ยืนยันข้อมูลสำเร็จ!', 'success');
-                    document.getElementById('confirm-button').style.display = 'none';
-                    nextButton.textContent = 'เรียบร้อย';
+
+                    // ⭐ --- START: การปรับปรุงหลัก --- ⭐
+                    // ไม่มีการใช้ setTimeout เพื่อกลับไปหน้าเลือกหลักสูตรอีกต่อไป
+                    // เราจะเปลี่ยนปุ่มบนหน้าจอปัจจุบันเพื่อการทำงานที่รวดเร็วขึ้น
+
+                    // 1. ปรับปุ่ม "สแกนคนถัดไป"
+                    nextButton.textContent = `สแกนต่อ (${selectedCourseForCheckIn})`;
+                    nextButton.onclick = () => initCameraScanner(); // เมื่อกด จะไปหน้าสแกนทันที
                     nextButton.disabled = false;
-                    // Automatically go back to course selection screen after 2 seconds
-                    setTimeout(() => { showCourseSelection(); }, 2000);
+
+                    // 2. ปรับปุ่ม "ยืนยัน" เดิมให้เป็น "เปลี่ยนหลักสูตร"
+                    confirmButton.textContent = 'เปลี่ยนหลักสูตร';
+                    confirmButton.className = 'btn-dark'; // เปลี่ยนสีเพื่อให้แตกต่าง
+                    confirmButton.style.display = 'block'; // ตรวจสอบให้แน่ใจว่าปุ่มแสดงอยู่
+                    confirmButton.onclick = () => showCourseSelection(); // เมื่อกด จะกลับไปหน้าเลือกหลักสูตร
+                    confirmButton.disabled = false;
+                    
+                    // ⭐ --- END: การปรับปรุงหลัก --- ⭐
+
                 } else {
                     showMessage(`เกิดข้อผิดพลาด: ${result.message}`, 'error');
                     confirmButton.disabled = false;
