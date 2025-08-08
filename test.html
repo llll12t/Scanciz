@@ -77,7 +77,7 @@
     <div class="app-container">
         <header class="app-header">
             <button class="header-back-button" onclick="goBack()">&#8249;</button>
-            <h1>ข้อมูลสมาชิก</h1>
+            <h1 id="header-title">ข้อมูลสมาชิก</h1>
             <div style="width: 40px;"></div>
         </header>
         <main>
@@ -93,15 +93,16 @@
                 <div>
                     <h3 style="text-align:center; margin-top:0;">กรุณาเลือกหลักสูตร</h3>
                     <div class="card">
-                        <select id="course-select-dropdown">
+                        <select id="course-select-dropdown" onchange="handleCourseDropdownChange()">
                             <option value="">-- กำลังโหลดหลักสูตร --</option>
                         </select>
                         <div id="course-select-status" style="text-align:center; color: red; margin-top: 15px; min-height: 20px;"></div>
                     </div>
                 </div>
-                <div class="button-group" style="flex-direction: column;">
+                <div class="button-group" style="flex-direction: column; gap: 10px;">
                     <button class="btn-primary" onclick="proceedWithCheckIn('scan')">เริ่มสแกนด้วยกล้อง</button>
                     <button class="btn-dark" onclick="proceedWithCheckIn('manual')">กรอกรหัสเอง</button>
+                    <button class="btn-secondary" onclick="resetCourseSelection()">กลับหน้าหลัก (ล้างค่า)</button>
                 </div>
             </div>
 
@@ -130,7 +131,7 @@
                 </div>
             </div>
             
-              <div id="history-screen" class="screen">
+            <div id="history-screen" class="screen">
                 <div>
                      <h3 style="text-align:center; margin-top:0;">ประวัติการเช็คอิน</h3>
                        <div id="history-filter">
@@ -180,7 +181,6 @@
         let videoStream = null;
         let scanTimeout = null;
         let isScanning = false;
-        // ⭐ NEW: Global variable to store the selected course
         let selectedCourseForCheckIn = null;
 
         function showScreen(screenId) {
@@ -191,23 +191,41 @@
             if (activeScreen) {
                 activeScreen.classList.add('active');
             }
+            // ⭐ UPDATE: Change header text based on screen
+            const headerTitle = document.getElementById('header-title');
+            switch (screenId) {
+                case 'course-select-screen':
+                    headerTitle.textContent = "เลือกหลักสูตร";
+                    break;
+                case 'history-screen':
+                    headerTitle.textContent = "ประวัติการเช็คอิน";
+                    break;
+                case 'details-screen':
+                    headerTitle.textContent = "รายละเอียดผู้เข้าร่วม";
+                    break;
+                default:
+                    headerTitle.textContent = "ข้อมูลสมาชิก";
+            }
+            // ⭐ UPDATE: Set dropdown value if we are going to the course selection screen
+            if (screenId === 'course-select-screen' && selectedCourseForCheckIn) {
+                document.getElementById('course-select-dropdown').value = selectedCourseForCheckIn;
+            }
             hideMessage();
         }
         
-        // ⭐ NEW: Centralized back button logic
         function goBack() {
             const activeScreenId = document.querySelector('.screen.active').id;
             switch(activeScreenId) {
                 case 'camera-scanner-screen':
-                    stopCamera(true); // Stop camera and go back to course select
+                    stopCamera(true);
                     break;
                 case 'manual-input-screen':
+                case 'details-screen':
+                    showScreen('course-select-screen');
+                    break;
                 case 'course-select-screen':
                 case 'history-screen':
                     showScreen('home-screen');
-                    break;
-                case 'details-screen':
-                    goBackToCourseSelect();
                     break;
                 default:
                     showScreen('home-screen');
@@ -215,8 +233,15 @@
         }
         
         function goBackToCourseSelect() {
-            stopCamera(false); // Just stop stream if any, don't navigate
-            showCourseSelection();
+            stopCamera(false); 
+            showScreen('course-select-screen');
+        }
+
+        // ⭐ NEW: Function to clear saved course and go home
+        function resetCourseSelection() {
+            localStorage.removeItem('savedCourseForCheckIn');
+            selectedCourseForCheckIn = null;
+            showScreen('home-screen');
         }
 
         function showMessage(text, type) {
@@ -230,10 +255,10 @@
             document.getElementById('message-box').style.display = 'none';
         }
 
-        // ⭐ NEW: Function to show and populate the course selection screen
         async function showCourseSelection() {
             showScreen('course-select-screen');
             const dropdown = document.getElementById('course-select-dropdown');
+            dropdown.disabled = true;
             dropdown.innerHTML = '<option value="">-- กำลังโหลดหลักสูตร --</option>';
             try {
                 const response = await fetch(`${WEB_APP_URL}?action=getCourses`);
@@ -246,15 +271,33 @@
                         option.textContent = course;
                         dropdown.appendChild(option);
                     });
+                    // ⭐ UPDATE: Set value from memory after populating
+                    if (selectedCourseForCheckIn) {
+                        dropdown.value = selectedCourseForCheckIn;
+                    }
                 } else {
                     dropdown.innerHTML = '<option value="">-- ไม่พบหลักสูตร --</option>';
                 }
             } catch (error) {
                 dropdown.innerHTML = '<option value="">-- โหลดล้มเหลว --</option>';
+            } finally {
+                dropdown.disabled = false;
             }
         }
         
-        // ⭐ NEW: Function to proceed after a course is selected
+        // ⭐ NEW: Function to handle manual dropdown changes
+        function handleCourseDropdownChange() {
+            const dropdown = document.getElementById('course-select-dropdown');
+            selectedCourseForCheckIn = dropdown.value;
+            // Save the newly selected course to localStorage immediately
+            if (selectedCourseForCheckIn) {
+                localStorage.setItem('savedCourseForCheckIn', selectedCourseForCheckIn);
+            } else {
+                // If user selects the placeholder, remove from storage
+                localStorage.removeItem('savedCourseForCheckIn');
+            }
+        }
+        
         function proceedWithCheckIn(mode) {
             const dropdown = document.getElementById('course-select-dropdown');
             const statusDiv = document.getElementById('course-select-status');
@@ -264,8 +307,11 @@
                 statusDiv.textContent = 'กรุณาเลือกหลักสูตรก่อน';
                 return;
             }
-            statusDiv.textContent = ''; // Clear error message
-
+            statusDiv.textContent = ''; 
+            
+            // ⭐ UPDATE: Save to localStorage on proceed
+            localStorage.setItem('savedCourseForCheckIn', selectedCourseForCheckIn);
+            
             if (mode === 'scan') {
                 initCameraScanner();
             } else if (mode === 'manual') {
@@ -308,13 +354,13 @@
                 videoStream.getTracks().forEach(track => track.stop());
                 videoStream = null;
             }
-            // ⭐ UPDATE: Navigate back to course selection
             if (navigateBack) {
                 showScreen('course-select-screen');
             }
         }
         
         async function startAutoScanLoop() {
+            // ... (The content of this function remains unchanged)
             if (!isScanning) return;
 
             const video = document.getElementById('video-feed');
@@ -346,20 +392,14 @@
             statusDiv.textContent = "🔍 กำลังตรวจสอบภาพ...";
 
             try {
-                const { data: { text } } = await Tesseract.recognize(
-                    imageToSend,
-                    'tha+eng'
-                );
-                
+                const { data: { text } } = await Tesseract.recognize( imageToSend, 'tha+eng' );
                 const idMatch = text.match(/\d[\d\s\-]{11,20}/);
-
                 if (idMatch && idMatch[0]) {
                     const idNumber = idMatch[0].replace(/\D/g, '');
-
                     if (idNumber.length === 13) {
                         isScanning = false;
                         statusDiv.textContent = `✅ พบเลขบัตรแล้ว! กำลังตรวจสอบ...`;
-                        await handleSearch(idNumber); // The selected course is already in the global variable
+                        await handleSearch(idNumber);
                         return;
                     } else {
                         statusDiv.textContent = `⚠️ ตรวจพบเลข: ${idNumber} (ไม่ครบ 13 หลัก)`;
@@ -367,18 +407,17 @@
                 } else {
                     statusDiv.textContent = "📷 ยังไม่พบเลขบัตรในกรอบ...";
                 }
-
             } catch (e) {
                 console.error("OCR Error:", e);
                 statusDiv.textContent = "❌ เกิดข้อผิดพลาดในการอ่านภาพ";
             }
-
             if (isScanning) {
                 scanTimeout = setTimeout(startAutoScanLoop, 1500);
             }
         }
         
         async function handleManualSearch() {
+            // ... (The content of this function remains unchanged)
             const id = document.getElementById('manual-id-input').value;
             const statusDiv = document.getElementById('manual-search-status');
             if(!id || id.length !== 13) {
@@ -386,14 +425,14 @@
                 return;
             }
             statusDiv.textContent = 'กำลังค้นหา...';
-            // ⭐ The selected course is already in the global variable
             await handleSearch(id, () => {
                 statusDiv.textContent = `ไม่พบข้อมูลสำหรับเลขบัตรนี้ในหลักสูตรที่เลือก`;
             });
         }
         
         async function showHistory() {
-            showScreen('history-screen');
+            // ... (The content of this function remains unchanged)
+             showScreen('history-screen');
             const logListDiv = document.getElementById('log-list');
             const courseFilter = document.getElementById('course-filter');
             const selectedCourse = courseFilter.value;
@@ -436,12 +475,12 @@
         }
         
         async function populateCourseFilter() {
+            // ... (The content of this function remains unchanged)
             try {
                 const response = await fetch(`${WEB_APP_URL}?action=getCourses`);
                 const result = await response.json();
                 if (result.success) {
                     const courseFilter = document.getElementById('course-filter');
-                    // Clear existing options except the first one ("ทั้งหมด")
                     while (courseFilter.options.length > 1) {
                         courseFilter.remove(1);
                     }
@@ -457,21 +496,20 @@
             }
         }
 
-        // ⭐ UPDATE: Function now sends the selected course along with the ID
         async function handleSearch(id, onErrorCallback) {
-            if (!selectedCourseForCheckIn) {
+            // ... (The content of this function remains unchanged)
+             if (!selectedCourseForCheckIn) {
                  alert('เกิดข้อผิดพลาด: ไม่ได้เลือกหลักสูตร');
                  showCourseSelection();
                  return;
             }
             try {
-                // Encode the course name to handle special characters in URL
                 const encodedCourse = encodeURIComponent(selectedCourseForCheckIn);
                 const response = await fetch(`${WEB_APP_URL}?action=search&id=${id}&course=${encodedCourse}`);
                 const data = await response.json();
                 if (data.found) {
                     if (videoStream) {
-                        stopCamera(false); // Stop camera but don't navigate
+                        stopCamera(false);
                     }
                     showDetails(data);
                 } else {
@@ -479,7 +517,6 @@
                         onErrorCallback();
                     } else {
                         alert(`ไม่พบข้อมูลสำหรับเลขบัตร: ${id} ในหลักสูตร "${selectedCourseForCheckIn}"`);
-                        // Go back to scanning for the same course
                         initCameraScanner(); 
                     }
                 }
@@ -488,13 +525,13 @@
                 if (onErrorCallback) {
                     onErrorCallback();
                 } else {
-                    // Go back to scanning for the same course
                     initCameraScanner();
                 }
             }
         }
 
         function showDetails(data) {
+            // ... (The content of this function remains unchanged)
             currentMemberData.sheet = data;
             document.getElementById('detail-name').textContent = data.name;
             document.getElementById('detail-student-id').textContent = data.studentId;
@@ -514,16 +551,20 @@
                 statusSpan.textContent = 'ยืนยันแล้ว';
                 statusSpan.classList.add('checked-in');
                 confirmBtn.style.display = 'none';
-                nextBtn.textContent = 'กลับไปเลือกหลักสูตร';
+                nextBtn.textContent = 'กลับ';
             } else {
                 statusSpan.textContent = 'รอการยืนยัน';
                 statusSpan.classList.add('waiting');
                 confirmBtn.style.display = 'block';
+                 // Reset button styles from previous successful confirmation
+                confirmBtn.className = 'btn-primary'; 
+                confirmBtn.textContent = 'ยืนยันการเข้าร่วม';
             }
             showScreen('details-screen');
         }
 
-       async function handleConfirm() {
+        async function handleConfirm() {
+            // This function is also updated from previous step, keep it
             if (!currentMemberData.sheet) return;
             const confirmButton = document.getElementById('confirm-button');
             const nextButton = document.getElementById('cancel-button');
@@ -540,25 +581,15 @@
                 const result = await response.json();
                 if (result.success) {
                     showMessage('ยืนยันข้อมูลสำเร็จ!', 'success');
-
-                    // ⭐ --- START: การปรับปรุงหลัก --- ⭐
-                    // ไม่มีการใช้ setTimeout เพื่อกลับไปหน้าเลือกหลักสูตรอีกต่อไป
-                    // เราจะเปลี่ยนปุ่มบนหน้าจอปัจจุบันเพื่อการทำงานที่รวดเร็วขึ้น
-
-                    // 1. ปรับปุ่ม "สแกนคนถัดไป"
                     nextButton.textContent = `สแกนต่อ (${selectedCourseForCheckIn})`;
-                    nextButton.onclick = () => initCameraScanner(); // เมื่อกด จะไปหน้าสแกนทันที
+                    nextButton.onclick = () => initCameraScanner(); 
                     nextButton.disabled = false;
 
-                    // 2. ปรับปุ่ม "ยืนยัน" เดิมให้เป็น "เปลี่ยนหลักสูตร"
                     confirmButton.textContent = 'เปลี่ยนหลักสูตร';
-                    confirmButton.className = 'btn-dark'; // เปลี่ยนสีเพื่อให้แตกต่าง
-                    confirmButton.style.display = 'block'; // ตรวจสอบให้แน่ใจว่าปุ่มแสดงอยู่
-                    confirmButton.onclick = () => showCourseSelection(); // เมื่อกด จะกลับไปหน้าเลือกหลักสูตร
+                    confirmButton.className = 'btn-dark'; 
+                    confirmButton.style.display = 'block';
+                    confirmButton.onclick = () => showCourseSelection(); 
                     confirmButton.disabled = false;
-                    
-                    // ⭐ --- END: การปรับปรุงหลัก --- ⭐
-
                 } else {
                     showMessage(`เกิดข้อผิดพลาด: ${result.message}`, 'error');
                     confirmButton.disabled = false;
@@ -574,8 +605,18 @@
         }
         
         document.addEventListener('DOMContentLoaded', () => {
-            showScreen('home-screen');
-            populateCourseFilter(); // Populate history filter on load
+            populateCourseFilter();
+            
+            // ⭐ UPDATE: Check for saved course on initial load
+            const savedCourse = localStorage.getItem('savedCourseForCheckIn');
+            if (savedCourse) {
+                selectedCourseForCheckIn = savedCourse;
+                // Directly go to course selection screen if a course is remembered
+                showCourseSelection();
+            } else {
+                // Otherwise, show the home screen as usual
+                showScreen('home-screen');
+            }
         });
     </script>
 </body>
