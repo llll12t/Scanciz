@@ -552,51 +552,72 @@
             }
         }
         
-    async function showHistory() {
-            // ... (The content of this function remains unchanged)
-             showScreen('history-screen');
+    // ⭐ UPDATE: ฟังก์ชันสำหรับหน้าประวัติ
+        async function populateHistoryFilter() {
+            const filterDropdown = document.getElementById('history-course-filter');
+            if (filterDropdown.options.length > 1) return; // ถ้ามีข้อมูลแล้ว ไม่ต้องโหลดใหม่
+
+            try {
+                const response = await fetch(`${WEB_APP_URL}?action=getCourses`);
+                const result = await response.json();
+                filterDropdown.innerHTML = '<option value="all">ทั้งหมด</option>'; // เริ่มต้นด้วย "ทั้งหมด"
+                if (result.success) {
+                    result.data.forEach(course => {
+                        const option = document.createElement('option');
+                        option.value = course;
+                        option.textContent = course;
+                        filterDropdown.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error("Could not populate history filter:", error);
+            }
+        }
+
+        async function showHistory() {
+            await populateHistoryFilter(); // ตรวจสอบและโหลดฟิลเตอร์ก่อน
+            showScreen('history-screen');
+            
             const logListDiv = document.getElementById('log-list');
-            const courseFilter = document.getElementById('course-filter');
-            const selectedCourse = courseFilter.value;
+            const selectedCourse = document.getElementById('history-course-filter').value;
             logListDiv.innerHTML = '<p style="text-align:center;">กำลังโหลด...</p>';
 
             try {
                 const response = await fetch(`${WEB_APP_URL}?action=getLog&course=${selectedCourse}`);
                 const result = await response.json();
 
-                if(result.success && result.data.length > 0) {
+                if (result.success && result.data.length > 0) {
                     logListDiv.innerHTML = '';
                     result.data.forEach(log => {
                         const item = document.createElement('div');
                         item.className = 'log-item';
+                        
                         const logTime = new Date(log[0]).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' });
-                        const citizenId = log[1];
                         const name = log[2];
                         const course = log[3];
-                        const status = log[4];
-                        const statusIcon = status === 'เข้าร่วมแล้ว' ? '✅' : '';
+                        const activity = log[4];
 
                         item.innerHTML = `
-                            <div class="log-main">
-                                <div class="log-name">${name} ${statusIcon}</div>
+                            <div>
+                                <div class="log-name">${name} ✅</div>
                                 <div class="log-time">${logTime} น.</div>
                             </div>
                             <div class="log-extra">
                                 <div class="log-course">${course}</div>
-                                <div class="log-id">${citizenId}</div>
+                                <div class="log-activity">${activity}</div>
                             </div>
                         `;
                         logListDiv.appendChild(item);
                     });
                 } else {
-                     logListDiv.innerHTML = '<p style="text-align:center;">ไม่พบข้อมูลประวัติ</p>';
+                    logListDiv.innerHTML = '<p style="text-align:center;">ไม่พบข้อมูลประวัติ</p>';
                 }
-            } catch(error) {
+            } catch (error) {
                 logListDiv.innerHTML = '<p style="text-align:center; color:red;">ไม่สามารถโหลดข้อมูลได้</p>';
             }
         }
 
-        // --- เริ่มต้นแอป ---
+        // --- (ฟังก์ชันเริ่มต้นแอป document.addEventListener เหมือนเดิม) ---
         document.addEventListener('DOMContentLoaded', () => {
             showScreen('home-screen');
             const savedCourse = localStorage.getItem('savedCourse');
