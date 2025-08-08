@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบเช็คอินด้วย Barcode</title>
+    
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary-blue: #110D42;
+            --primary-yellow: #FFB900;
+            --light-bg: #F5F7FA;
+            --white: #FFFFFF;
+            --dark-text: #333333;
+            --light-text: #888888;
+            --border-color: #EEEEEE;
+        }
+        body { 
+            margin: 0; 
+            font-family: 'Sarabun', sans-serif; 
+            background-color: var(--light-bg); 
+            color: var(--dark-text); 
+            display: flex; 
+            justify-content: center;  
+            min-height: 100vh; 
+            padding: 0px; 
+        }
+        .app-container { 
+            width: 100%; 
+            max-width: 420px; 
+            height: 100vh; 
+            max-height: 700px; /* Adjusted for better viewing on most devices */
+            background-color: var(--white); 
+            border-radius: 0px;   
+            overflow: hidden; 
+            display: flex; 
+            flex-direction: column; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .app-header { 
+            background-color: var(--primary-blue); 
+            color: var(--white); 
+            padding: 15px 20px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            flex-shrink: 0; 
+        }
+        .app-header h1 { 
+            margin: 0; 
+            font-size: 1.2em; 
+            font-weight: 600; 
+            text-align: center;
+            flex-grow: 1;
+        }
+        .header-back-button { 
+            width: 50px; 
+            background: none; 
+            border: none; 
+            color: white; 
+            font-size: 1em; 
+            cursor: pointer; 
+            padding: 0; 
+            text-align: left;
+            visibility: hidden; /* Hide by default */
+        }
+        main { 
+            padding: 25px; 
+            flex-grow: 1; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: space-between; 
+            overflow-y: auto; 
+        }
+        .screen { 
+            display: none; 
+            height: 100%; 
+            flex-direction: column; 
+            justify-content: space-between; 
+            animation: fadeIn 0.3s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .screen.active { display: flex; }
+        .card { 
+            background-color: var(--white); 
+            border-radius: 16px; 
+            padding: 20px; 
+            border: 1px solid var(--border-color); 
+            margin-bottom: 20px;
+        }
+        button { 
+            width: 100%; 
+            padding: 15px; 
+            border: none; 
+            border-radius: 12px; 
+            font-size: 1em; 
+            font-weight: 700; 
+            font-family: 'Sarabun', sans-serif; 
+            cursor: pointer; 
+            transition: opacity 0.3s; 
+        }
+        button:disabled { 
+            background-color: #a0a0a0; 
+            color: #666; 
+            cursor: not-allowed; 
+        }
+        .btn-primary { background-color: var(--primary-yellow); color: var(--dark-text); }
+        .btn-dark { background-color: var(--primary-blue); color: var(--white); }
+        .btn-secondary { background-color: #f0f0f0; color: var(--dark-text); border: 1px solid var(--border-color); }
+        .button-group { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 10px; 
+            margin-top: 25px; 
+            width: 100%;
+        }
+        #course-select-dropdown { 
+            width: 100%;
+            padding: 12px; 
+            border-radius: 8px; 
+            border: 1px solid var(--border-color); 
+            font-family: 'Sarabun', sans-serif; 
+            font-size: 1em; 
+        }
+        .seat-box { 
+            background-color: var(--primary-blue); 
+            color: var(--white); 
+            width: 100%; 
+            height: 100px;
+            margin-bottom: 23px; 
+            border-radius: 16px; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+            flex-shrink: 0; 
+        }
+        .seat-box span { font-size: 0.9em; }
+        .seat-box strong { font-size: 2.5em; font-weight: 700; line-height: 1.1; }
+        .info-details p { margin: 0 0 10px 0; font-size: 0.95em; }
+        .info-details p strong { display: block; font-size: 1.1em; color: var(--dark-text); }
+        .status-tag { display: inline-block; padding: 5px 12px; border-radius: 20px; font-weight: 600; font-size: 0.9em; }
+        .status-tag.waiting { background-color: #fff0c7; color: #d18c00; }
+        .status-tag.checked-in { background-color: #d4edda; color: #155724; }
+        #message-box { text-align: center; margin-top: 20px; font-weight: bold; padding: 12px; border-radius: 8px; display: none; }
+        .message-success { background-color: #d4edda; color: #155724; }
+        .message-error { background-color: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <button class="header-back-button" onclick="goBack()">กลับ</button>
+            <h1 id="header-title">เช็คอินกิจกรรม</h1>
+            <div style="width: 50px;"></div>
+        </header>
+        <main>
+            <div id="home-screen" class="screen">
+                <div style="text-align: center; flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                    <img src="https://i.imgur.com/3Z8xW2A.png" alt="Check-in icon" style="width: 120px; margin-bottom: 20px;">
+                    <h2>ระบบเช็คอิน</h2>
+                    <p style="color: var(--light-text);">ยินดีต้อนรับสู่ระบบเช็คอินด้วยบาร์โค้ด</p>
+                </div>
+                <div class="button-group">
+                    <button class="btn-dark" onclick="showHistory()">ดูประวัติ</button>
+                    <button class="btn-primary" onclick="showCourseSelection()">เริ่มเช็คอิน</button>
+                </div>
+            </div>
+
+            <div id="course-select-screen" class="screen">
+                <div style="width:100%;">
+                    <h3 style="text-align:center; margin-top:0;">กรุณาเลือกหลักสูตร</h3>
+                    <div class="card">
+                        <select id="course-select-dropdown" onchange="handleCourseDropdownChange()">
+                            <option value="">-- กำลังโหลดหลักสูตร --</option>
+                        </select>
+                        <div id="course-select-status" style="text-align:center; color: red; margin-top: 15px; min-height: 20px;"></div>
+                    </div>
+                </div>
+                <div class="button-group">
+                    <button class="btn-primary" onclick="proceedWithCheckIn('scan')">เริ่มสแกนด้วยกล้อง</button>
+                    <button class="btn-dark" onclick="proceedWithCheckIn('manual')">กรอกรหัสเอง</button>
+                    <button class="btn-secondary" onclick="resetCourseSelection()">กลับหน้าหลัก (ล้างค่า)</button>
+                </div>
+            </div>
+
+            <div id="camera-scanner-screen" class="screen">
+                <div id="barcode-reader" style="width: 100%; border-radius: 16px; overflow: hidden;"></div>
+                <p id="scan-status" style="margin-top: 15px; text-align: center; font-weight: 600;">กำลังเปิดกล้อง...</p>
+                <div id="scanner-button-container"></div>
+            </div>
+
+            <div id="manual-input-screen" class="screen">
+                <div>
+                    <h3 style="text-align:center;">กรอกรหัสนักศึกษา</h3>
+                    <div class="card" style="padding: 30px;">
+                        <input type="text" id="manual-id-input" placeholder="รหัสนักศึกษา" style="width: 100%; text-align: center; font-size: 1.5em; border: none; border-bottom: 2px solid var(--primary-blue); padding: 10px 0; letter-spacing: 2px;">
+                    </div>
+                    <div id="manual-search-status" style="text-align:center; color: red; margin-top: 15px; min-height: 20px;"></div>
+                </div>
+                <div class="button-group">
+                    <button class="btn-primary" onclick="handleManualSearch()">ค้นหา</button>
+                </div>
+            </div>
+            
+            <div id="history-screen" class="screen">
+                </div>
+
+            <div id="details-screen" class="screen">
+                <div>
+                    <div class="card">
+                         <div class="seat-box">
+                            <span>เลขที่นั่ง</span>
+                            <strong id="detail-seat">N/A</strong>
+                        </div>
+                        <div class="info-details">
+                            <p><strong>ชื่อ - สกุล:</strong> <span id="detail-name"></span></p>
+                            <p><strong>รหัสนักศึกษา:</strong> <span id="detail-student-id"></span></p>
+                            <p><strong>หลักสูตร:</strong> <span id="detail-course"></span></p>
+                            <p><strong>สถานะ:</strong> <span id="detail-status"></span></p>
+                        </div>
+                    </div>
+                    <div id="message-box"></div>
+                </div>
+                <div class="button-group" id="details-button-group">
+                    <button class="btn-primary" id="confirm-button" onclick="handleConfirm()">ยืนยันการเข้าร่วม</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzjM7s1j313KuYJxYDIMIkKRkW8SeMUcEcg2xrDmGASS5QE5UjCHNIhxNdyUoeA1oeV/exec'; // <--- ใส่ URL ของ Web App ที่ Deploy แล้ว
+        let currentMemberData = {};
+        let selectedCourseForCheckIn = null;
+        let html5QrCode = null;
+
+        function showScreen(screenId) {
+            document.querySelectorAll('main > .screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            const activeScreen = document.getElementById(screenId);
+            if (activeScreen) {
+                activeScreen.classList.add('active');
+            }
+
+            const backButton = document.querySelector('.header-back-button');
+            const headerTitle = document.getElementById('header-title');
+            
+            if (screenId === 'home-screen') {
+                backButton.style.visibility = 'hidden';
+                headerTitle.textContent = "เช็คอินกิจกรรม";
+            } else {
+                backButton.style.visibility = 'visible';
+                if (screenId === 'course-select-screen') headerTitle.textContent = "เลือกหลักสูตร";
+                else if (screenId === 'history-screen') headerTitle.textContent = "ประวัติ";
+                else if (screenId === 'details-screen') headerTitle.textContent = "รายละเอียด";
+                else headerTitle.textContent = "เช็คอิน";
+            }
+            
+            if (screenId === 'course-select-screen' && selectedCourseForCheckIn) {
+                document.getElementById('course-select-dropdown').value = selectedCourseForCheckIn;
+            }
+            hideMessage();
+        }
+
+        function goBack() {
+            if (html5QrCode && html5QrCode.isScanning) {
+                stopBarcodeScanner(false);
+            }
+            const activeScreenId = document.querySelector('.screen.active').id;
+            switch(activeScreenId) {
+                case 'camera-scanner-screen':
+                case 'manual-input-screen':
+                case 'details-screen':
+                    showScreen('course-select-screen');
+                    break;
+                case 'course-select-screen':
+                case 'history-screen':
+                    showScreen('home-screen');
+                    break;
+                default:
+                    showScreen('home-screen');
+            }
+        }
+
+        function resetCourseSelection() {
+            localStorage.removeItem('savedCourseForCheckIn');
+            selectedCourseForCheckIn = null;
+            showScreen('home-screen');
+        }
+
+        function showMessage(text, type) {
+            const msgBox = document.getElementById('message-box');
+            msgBox.textContent = text;
+            msgBox.className = 'message-box ' + (type === 'success' ? 'message-success' : 'message-error');
+            msgBox.style.display = 'block';
+        }
+
+        function hideMessage() {
+            const msgBox = document.getElementById('message-box');
+            if(msgBox) msgBox.style.display = 'none';
+        }
+
+        async function showCourseSelection() {
+            showScreen('course-select-screen');
+            const dropdown = document.getElementById('course-select-dropdown');
+            dropdown.disabled = true;
+            dropdown.innerHTML = '<option value="">-- กำลังโหลด... --</option>';
+            try {
+                const response = await fetch(`${WEB_APP_URL}?action=getCourses`);
+                const result = await response.json();
+                if (result.success && result.data.length > 0) {
+                    dropdown.innerHTML = '<option value="">-- กรุณาเลือกหลักสูตร --</option>';
+                    result.data.forEach(course => {
+                        const option = document.createElement('option');
+                        option.value = course;
+                        option.textContent = course;
+                        dropdown.appendChild(option);
+                    });
+                    if (selectedCourseForCheckIn) {
+                        dropdown.value = selectedCourseForCheckIn;
+                    }
+                } else {
+                    dropdown.innerHTML = '<option value="">-- ไม่พบหลักสูตร --</option>';
+                }
+            } catch (error) {
+                dropdown.innerHTML = '<option value="">-- โหลดล้มเหลว --</option>';
+            } finally {
+                dropdown.disabled = false;
+            }
+        }
+
+        function handleCourseDropdownChange() {
+            const dropdown = document.getElementById('course-select-dropdown');
+            selectedCourseForCheckIn = dropdown.value;
+            if (selectedCourseForCheckIn) {
+                localStorage.setItem('savedCourseForCheckIn', selectedCourseForCheckIn);
+            } else {
+                localStorage.removeItem('savedCourseForCheckIn');
+            }
+        }
+
+        function proceedWithCheckIn(mode) {
+            const dropdown = document.getElementById('course-select-dropdown');
+            selectedCourseForCheckIn = dropdown.value;
+            if (!selectedCourseForCheckIn) {
+                document.getElementById('course-select-status').textContent = 'กรุณาเลือกหลักสูตรก่อน';
+                return;
+            }
+            document.getElementById('course-select-status').textContent = ''; 
+            localStorage.setItem('savedCourseForCheckIn', selectedCourseForCheckIn);
+            
+            if (mode === 'scan') {
+                initBarcodeScanner();
+            } else if (mode === 'manual') {
+                showScreen('manual-input-screen');
+                document.getElementById('manual-id-input').value = '';
+                document.getElementById('manual-search-status').textContent = '';
+            }
+        }
+
+        function initBarcodeScanner() {
+            showScreen('camera-scanner-screen');
+            const statusDiv = document.getElementById('scan-status');
+            const buttonContainer = document.getElementById('scanner-button-container');
+            buttonContainer.innerHTML = ''; // Clear old buttons
+
+            html5QrCode = new Html5Qrcode("barcode-reader");
+
+            const successCallback = (decodedText, decodedResult) => {
+                statusDiv.textContent = `✅ พบรหัส: ${decodedText}!`;
+                if (html5QrCode.isScanning) {
+                    html5QrCode.stop().then(() => handleSearch(decodedText)).catch(err => console.error("Stop failed", err));
+                } else {
+                    handleSearch(decodedText);
+                }
+            };
+
+            const config = { fps: 10, qrbox: { width: 280, height: 150 } };
+
+            html5QrCode.start({ facingMode: "environment" }, config, successCallback)
+                .then(() => {
+                    statusDiv.textContent = "หันกล้องไปที่ Barcode";
+                    buttonContainer.innerHTML = `<div class="button-group"><button class="btn-secondary" onclick="stopBarcodeScanner(true)">ยกเลิก</button></div>`;
+                })
+                .catch(err => {
+                    statusDiv.textContent = `❌ ไม่สามารถเปิดกล้องได้`;
+                    buttonContainer.innerHTML = `<div class="button-group"><button class="btn-secondary" onclick="goBack()">กลับ</button></div>`;
+                });
+        }
+
+        function stopBarcodeScanner(navigate = true) {
+            if (html5QrCode && html5QrCode.isScanning) {
+                html5QrCode.stop().catch(err => console.error("Stop failed.", err));
+            }
+            if(navigate) showScreen('course-select-screen');
+        }
+
+        async function handleSearch(studentId, onErrorCallback) {
+            if (!selectedCourseForCheckIn) {
+                alert('เกิดข้อผิดพลาด: ไม่ได้เลือกหลักสูตร');
+                return showCourseSelection();
+            }
+            const statusDiv = document.getElementById('scan-status') || document.getElementById('manual-search-status');
+            statusDiv.textContent = 'กำลังค้นหาข้อมูล...';
+            
+            try {
+                const encodedCourse = encodeURIComponent(selectedCourseForCheckIn);
+                const response = await fetch(`${WEB_APP_URL}?action=search&id=${studentId}&course=${encodedCourse}`);
+                const data = await response.json();
+                if (data.found) {
+                    showDetails(data);
+                } else {
+                    if (onErrorCallback) onErrorCallback();
+                    else alert(`ไม่พบรหัสนักศึกษา "${studentId}" ในหลักสูตรนี้`);
+                    goBack(); // Go back to previous screen
+                }
+            } catch (error) {
+                alert('การเชื่อมต่อล้มเหลว');
+                goBack();
+            }
+        }
+        
+        function showDetails(data) {
+            currentMemberData = data;
+            document.getElementById('detail-name').textContent = data.name;
+            document.getElementById('detail-student-id').textContent = data.studentId;
+            document.getElementById('detail-course').textContent = data.course;
+            document.getElementById('detail-seat').textContent = data.seat || 'N/A';
+            
+            const statusSpan = document.getElementById('detail-status');
+            statusSpan.className = 'status-tag';
+            
+            const buttonGroup = document.getElementById('details-button-group');
+            
+            if (data.status === 'เข้าร่วมแล้ว') {
+                statusSpan.textContent = 'ยืนยันแล้ว';
+                statusSpan.classList.add('checked-in');
+                buttonGroup.innerHTML = `<button class="btn-dark" onclick="goBack()">สแกนคนถัดไป</button>`;
+            } else {
+                statusSpan.textContent = 'รอการยืนยัน';
+                statusSpan.classList.add('waiting');
+                buttonGroup.innerHTML = `<button class="btn-primary" id="confirm-button" onclick="handleConfirm()">ยืนยันการเข้าร่วม</button>`;
+            }
+            showScreen('details-screen');
+        }
+
+        async function handleConfirm() {
+            if (!currentMemberData) return;
+            const confirmButton = document.getElementById('confirm-button');
+            confirmButton.disabled = true;
+            confirmButton.textContent = 'กำลังบันทึก...';
+
+            try {
+                const response = await fetch(WEB_APP_URL, {
+                    method: 'POST', 
+                    redirect: 'follow', 
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ action: 'confirm', id: currentMemberData.id, course: currentMemberData.course })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    showMessage('ยืนยันข้อมูลสำเร็จ!', 'success');
+                    const buttonGroup = document.getElementById('details-button-group');
+                    buttonGroup.innerHTML = `<button class="btn-dark" onclick="goBack()">สแกนคนถัดไป</button>`;
+                    document.getElementById('detail-status').textContent = 'ยืนยันแล้ว';
+                    document.getElementById('detail-status').className = 'status-tag checked-in';
+                } else {
+                    showMessage(`เกิดข้อผิดพลาด: ${result.message}`, 'error');
+                    confirmButton.disabled = false;
+                    confirmButton.textContent = 'ยืนยันการเข้าร่วม';
+                }
+            } catch (error) {
+                showMessage('การเชื่อมต่อผิดพลาด', 'error');
+                confirmButton.disabled = false;
+                confirmButton.textContent = 'ยืนยันการเข้าร่วม';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedCourse = localStorage.getItem('savedCourseForCheckIn');
+            if (savedCourse) {
+                selectedCourseForCheckIn = savedCourse;
+                showCourseSelection();
+            } else {
+                showScreen('home-screen');
+            }
+        });
+    </script>
+</body>
+</html>
