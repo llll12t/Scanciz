@@ -1,13 +1,10 @@
 <!DOCTYPE html>
 <html lang="th">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>แดชบอร์ดจัดการข้อมูล</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=sarabun:wght@400;600;700&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
@@ -34,21 +31,15 @@
         </header>
 
         <div class="bg-white p-4 rounded-xl shadow-sm mb-6 flex flex-col sm:flex-row justify-between items-start gap-4">
-            <div class="flex-grow">
+            <div class="flex-grow w-full">
                 <label for="course-filter" class="text-sm font-semibold text-slate-600">กรองตามหลักสูตร</label>
-                <select id="course-filter" onchange="fetchAndPopulateTable()"
+                <select id="course-filter" onchange="filterAndDisplayData()"
                     class="w-full mt-1 p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-yellow focus:border-primary-blue"></select>
             </div>
-            <div class="flex gap-2 self-end w-full sm:w-auto">
-                <button onclick="openBulkAddModal()"
-                    class="flex-1 sm:flex-none bg-primary-blue text-white font-bold py-2 px-5 rounded-lg hover:opacity-90">
-                    + เพิ่มหลายคน
-                </button>
-                <button onclick="openAddModal()"
-                    class="flex-1 sm:flex-none bg-primary-yellow text-primary-blue font-bold py-2 px-5 rounded-lg hover:opacity-90">
-                    + เพิ่มข้อมูล
-                </button>
-            </div>
+             <div class="flex gap-2 self-end w-full sm:w-auto">
+                 <button onclick="openBulkAddModal()" class="flex-1 sm:flex-none bg-primary-blue text-white font-bold py-2 px-5 rounded-lg hover:opacity-90">+ เพิ่มหลายคน</button>
+                 <button onclick="openAddModal()" class="flex-1 sm:flex-none bg-primary-yellow text-primary-blue font-bold py-2 px-5 rounded-lg hover:opacity-90">+ เพิ่มข้อมูล</button>
+             </div>
         </div>
 
         <div id="course-grid-container" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -80,16 +71,21 @@
                     <input type="text" id="form-student-id" required class="w-full p-2 border border-slate-300 rounded-lg mt-1">
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label class="text-sm font-semibold text-slate-600" for="form-course">หลักสูตร (เลือกหรือพิมพ์เพื่อเพิ่มใหม่)</label>
+                     <div>
+                        <label class="text-sm font-semibold text-slate-600" for="form-course">หลักสูตร</label>
                         <input list="course-list" id="form-course" required class="w-full p-2 border border-slate-300 rounded-lg mt-1">
                         <datalist id="course-list"></datalist>
                     </div>
-                    <div>
-                        <label class="text-sm font-semibold text-slate-600" for="form-seat">เลขที่นั่ง</label>
-                        <input type="text" id="form-seat" required class="w-full p-2 border border-slate-300 rounded-lg mt-1">
+                     <div>
+                        <label class="text-sm font-semibold text-slate-600" for="form-activity">กิจกรรม</label>
+                        <input list="activity-list" id="form-activity" required class="w-full p-2 border border-slate-300 rounded-lg mt-1">
+                        <datalist id="activity-list"></datalist>
                     </div>
                 </div>
+                <div>
+                     <label class="text-sm font-semibold text-slate-600" for="form-seat">เลขที่นั่ง</label>
+                     <input type="text" id="form-seat" required class="w-full p-2 border border-slate-300 rounded-lg mt-1">
+                 </div>
                 <div class="flex items-center gap-4 pt-4">
                     <button type="button" class="w-full py-3 px-4 rounded-xl font-bold bg-white text-slate-700 border border-slate-200" onclick="closeModal('user-modal')">ยกเลิก</button>
                     <button type="submit" id="form-submit-btn" class="w-full py-3 px-4 rounded-xl font-bold bg-primary-yellow text-primary-blue">บันทึก</button>
@@ -101,16 +97,23 @@
     <div id="bulk-add-modal" class="hidden fixed inset-0 bg-black/60 z-50 flex justify-center items-center p-4">
         <div class="bg-white rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <h3 class="text-xl font-semibold mb-2 text-primary-blue">เพิ่มนักเรียนหลายคน</h3>
-            <p class="text-sm text-slate-500 mb-4">วางข้อมูลจาก Spreadsheet (เช่น Excel, Google Sheets) ตามรูปแบบที่กำหนด</p>
+            <p class="text-sm text-slate-500 mb-4">วางข้อมูลจาก Spreadsheet ตามรูปแบบที่กำหนด</p>
             <form id="bulk-add-form" onsubmit="handleBulkAdd(event)" class="space-y-4">
-                <div>
-                    <label class="text-sm font-semibold text-slate-600" for="bulk-course-input">เลือกหรือเพิ่มหลักสูตรใหม่</label>
-                    <input list="bulk-course-list" id="bulk-course-input" required class="w-full p-2 border border-slate-300 rounded-lg mt-1">
-                    <datalist id="bulk-course-list"></datalist>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-sm font-semibold text-slate-600" for="bulk-course-input">หลักสูตร (สำหรับทุกรายการ)</label>
+                        <input list="bulk-course-list" id="bulk-course-input" required class="w-full p-2 border border-slate-300 rounded-lg mt-1">
+                        <datalist id="bulk-course-list"></datalist>
+                    </div>
+                     <div>
+                        <label class="text-sm font-semibold text-slate-600" for="bulk-activity-input">กิจกรรม (สำหรับทุกรายการ)</label>
+                        <input list="bulk-activity-list" id="bulk-activity-input" required class="w-full p-2 border border-slate-300 rounded-lg mt-1">
+                        <datalist id="bulk-activity-list"></datalist>
+                    </div>
                 </div>
                 <div>
                     <label class="text-sm font-semibold text-slate-600" for="bulk-data">ข้อมูลนักเรียน</label>
-                    <p class="text-xs text-slate-500">รูปแบบ: `เลขบัตรฯ`, `ชื่อ`, `สกุล`, `รหัสนักศึกษา`, `เลขที่นั่ง` (คั่นด้วยจุลภาค `,` หรือ Tab)</p>
+                    <p class="text-xs text-slate-500">รูปแบบ: `เลขบัตรฯ`, `ชื่อ`, `สกุล`, `รหัสนักศึกษา`, `เลขที่นั่ง`</p>
                     <textarea id="bulk-data" rows="8" required class="w-full p-2 border border-slate-300 rounded-lg mt-1 font-mono" placeholder="110...8,สมชาย,ใจดี,6601,A1&#10;120...9,สมหญิง,รักเรียน,6602,A2"></textarea>
                 </div>
                 <div class="flex items-center gap-4 pt-4">
@@ -121,171 +124,179 @@
         </div>
     </div>
 
-
     <script>
-        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxqkYFp47h0vdxLLEKEWw3QXeEHW0pCUGM3PmIPVCAUpTXLPlzZkjSy40QLIPBeSR_u7w/exec'; // 👈 ใส่ URL ที่ได้จากการ Deploy
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbypzA8mOVHpkx8-SOzszGLbbNMmpF4tyRlIKW8jdxN7cboVe6J6mO2MYb0W3NBG5k__Gg/exec'; // 👈 ใส่ URL ที่ได้จากการ Deploy
+        let allStudentsData = []; // ตัวแปรสำหรับเก็บข้อมูลทั้งหมดไว้ในหน่วยความจำ
 
         // --- Initial Setup ---
-        document.addEventListener('DOMContentLoaded', async () => {
-            await populateAllCourseSelects();
-            await fetchAndPopulateTable();
-        });
+        document.addEventListener('DOMContentLoaded', fetchData);
 
-        // --- Data Fetching and Table Population ---
-        async function fetchAndPopulateTable() {
+        // --- Data Fetching and Display ---
+        async function fetchData() {
+            const gridContainer = document.getElementById("course-grid-container");
+            gridContainer.innerHTML = `<p class="text-slate-500 text-center md:col-span-2 xl:col-span-3">กำลังโหลดข้อมูล...</p>`;
+            try {
+                const response = await fetch(`${WEB_APP_URL}?action=getDashboardData`);
+                const result = await response.json();
+                if (result.success) {
+                    allStudentsData = result.allStudents;
+                    populateDatalists(result.uniqueCourses, result.uniqueActivities);
+                    filterAndDisplayData();
+                } else {
+                    throw new Error(result.message);
+                }
+            } catch (e) {
+                gridContainer.innerHTML = `<p class="text-red-500 text-center md:col-span-2 xl:col-span-3">การเชื่อมต่อล้มเหลว: ${e.message}</p>`;
+            }
+        }
+
+function populateDatalists(courses, activities) {
+            const courseFilter = document.getElementById('course-filter');
+            const courseDatalist = document.getElementById('course-list');
+            const bulkCourseDatalist = document.getElementById('bulk-course-list');
+            const activityDatalist = document.getElementById('activity-list');
+            const bulkActivityDatalist = document.getElementById('bulk-activity-list');
+
+            // ล้างข้อมูลเก่าทั้งหมด
+            courseFilter.innerHTML = '<option value="all">ทั้งหมด</option>';
+            [courseDatalist, bulkCourseDatalist, activityDatalist, bulkActivityDatalist].forEach(el => el.innerHTML = '');
+
+            courses.forEach(course => {
+                // ⭐ สำหรับ <select> ยังคงใช้ .add() ได้ตามปกติ
+                courseFilter.add(new Option(course, course));
+
+                // ⭐ สำหรับ <datalist> ให้เปลี่ยนมาใช้ .appendChild()
+                const courseOption = document.createElement('option');
+                courseOption.value = course;
+                courseDatalist.appendChild(courseOption);
+                bulkCourseDatalist.appendChild(courseOption.cloneNode(true)); // ใช้ cloneNode เพื่อประสิทธิภาพ
+            });
+            
+             activities.forEach(activity => {
+                // ⭐ สำหรับ <datalist> ของกิจกรรม ก็ใช้ .appendChild() เช่นกัน
+                const activityOption = document.createElement('option');
+                activityOption.value = activity;
+                activityDatalist.appendChild(activityOption);
+                bulkActivityDatalist.appendChild(activityOption.cloneNode(true));
+            });
+        }
+        
+        function filterAndDisplayData() {
             const gridContainer = document.getElementById("course-grid-container");
             const selectedCourse = document.getElementById('course-filter').value;
-            gridContainer.innerHTML = `<p class="text-slate-500 text-center md:col-span-2 xl:col-span-3">กำลังโหลดข้อมูล...</p>`;
+            
+            const filteredData = (selectedCourse === 'all') 
+                ? allStudentsData 
+                : allStudentsData.filter(row => row[5] === selectedCourse);
 
-            try {
-                const response = await fetch(`${WEB_APP_URL}?action=getAllData&course=${selectedCourse}`);
-                const result = await response.json();
+            if (filteredData.length > 0) {
+                const groupedByCourse = filteredData.reduce((acc, row) => {
+                    const courseName = row[5];
+                    if (!acc[courseName]) acc[courseName] = [];
+                    acc[courseName].push(row);
+                    return acc;
+                }, {});
 
-                if (result.success && result.data.length > 0) {
+                gridContainer.innerHTML = '';
+                for (const courseName in groupedByCourse) {
+                    const students = groupedByCourse[courseName];
                     
-                    const groupedByCourse = result.data.reduce((acc, row) => {
-                        const courseName = row[5];
-                        if (!acc[courseName]) {
-                            acc[courseName] = [];
-                        }
-                        acc[courseName].push(row);
+                    const groupedByActivity = students.reduce((acc, row) => {
+                        const activityName = row[6] || '(ไม่มีกิจกรรม)'; // ⭐ Group by activity
+                        if (!acc[activityName]) acc[activityName] = [];
+                        acc[activityName].push(row);
                         return acc;
                     }, {});
 
-                    gridContainer.innerHTML = '';
-
-                    for (const courseName in groupedByCourse) {
-                        const students = groupedByCourse[courseName];
-
-                        // ✨✨✨ THIS SECTION HAS BEEN UPDATED ✨✨✨
-                        const studentRowsHtml = students.map(row => `
-                            <tr class="border-b last:border-b-0" data-id="${row[0]}">
-                                <td class="p-2">
-                                  ${row[7] === 'เข้าร่วมแล้ว' ? '✅ ' : ''}${row[2]} ${row[3]}
-                                </td>
+                    let activityTablesHtml = '';
+                    for (const activityName in groupedByActivity) {
+                        const activityStudents = groupedByActivity[activityName];
+                        const studentRowsHtml = activityStudents.map(row => `
+                            <tr class="border-b last:border-b-0 hover:bg-slate-50" data-id="${row[0]}">
+                                <td class="p-2">${row[8] === 'เข้าร่วมแล้ว' ? '✅' : '⚪️'} ${row[2]} ${row[3]}</td>
                                 <td class="p-2">${row[4]}</td>
-                                <td class="p-2 font-semibold cursor-pointer hover:bg-yellow-100" onclick="editSeat(this)">${row[6]}</td>
+                                <td class="p-2 font-semibold cursor-pointer hover:bg-yellow-100" onclick="editSeat(this)">${row[7]}</td>
                                 <td class="p-2 text-center">
                                     <button class="text-blue-600 hover:underline text-xs" data-row='${JSON.stringify(row)}' onclick="openEditModal(this)">แก้ไข</button>
                                     <button class="text-red-600 hover:underline text-xs ml-2" data-id="${row[0]}" onclick="handleDelete(this)">ลบ</button>
                                 </td>
                             </tr>
                         `).join('');
-                        // ✨✨✨ END OF UPDATED SECTION ✨✨✨
 
-                        const cardHtml = `
-                            <div class="bg-white rounded-xl shadow-sm overflow-hidden flex flex-col">
-                                <h3 class="p-3 bg-slate-100 text-primary-blue font-bold border-b">${courseName}</h3>
-                                <div class="overflow-x-auto">
-                                    <table class="w-full text-sm">
-                                        <thead class="text-slate-600 text-xs">
-                                            <tr>
-                                                <th class="p-2 text-left w-[35%]">ชื่อ-สกุล</th>
-                                                <th class="p-2 text-left w-[25%]">รหัสนักศึกษา</th>
-                                                <th class="p-2 text-left w-[15%]">ที่นั่ง</th>
-                                                <th class="p-2 text-center w-[25%]">จัดการ</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            ${studentRowsHtml}
-                                        </tbody>
-                                    </table>
-                                </div>
+                        activityTablesHtml += `
+                            <div class="mt-4">
+                                <h4 class="px-3 py-1 bg-slate-200 text-slate-700 font-semibold text-sm">${activityName}</h4>
+                                <table class="w-full text-sm">
+                                    <tbody>${studentRowsHtml}</tbody>
+                                </table>
                             </div>
                         `;
-                        
-                        gridContainer.insertAdjacentHTML('beforeend', cardHtml);
                     }
-
-                } else {
-                    gridContainer.innerHTML = `<p class="text-slate-500 text-center md:col-span-2 xl:col-span-3">ไม่พบข้อมูล</p>`;
+                    
+                    const cardHtml = `
+                        <div class="bg-white rounded-xl shadow-sm overflow-hidden flex flex-col">
+                            <h3 class="p-3 bg-slate-100 text-primary-blue font-bold border-b">${courseName}</h3>
+                            <div class="overflow-x-auto p-2">
+                                <table class="w-full text-sm">
+                                     <thead>
+                                        <tr class="text-slate-600 text-xs">
+                                            <th class="p-2 text-left w-[40%]">ชื่อ-สกุล</th>
+                                            <th class="p-2 text-left w-[25%]">รหัสนักศึกษา</th>
+                                            <th class="p-2 text-left w-[15%]">ที่นั่ง</th>
+                                            <th class="p-2 text-center w-[20%]">จัดการ</th>
+                                        </tr>
+                                    </thead>
+                                </table>
+                                ${activityTablesHtml}
+                            </div>
+                        </div>
+                    `;
+                    gridContainer.insertAdjacentHTML('beforeend', cardHtml);
                 }
-            } catch (e) {
-                gridContainer.innerHTML = `<p class="text-red-500 text-center md:col-span-2 xl:col-span-3">การเชื่อมต่อล้มเหลว</p>`;
-            }
-        }
-
-        async function populateAllCourseSelects() {
-            try {
-                const response = await fetch(`${WEB_APP_URL}?action=getCourses`);
-                const result = await response.json();
-                if (result.success) {
-                    const courseFilter = document.getElementById('course-filter');
-                    const courseDatalist = document.getElementById('course-list');
-                    const bulkCourseDatalist = document.getElementById('bulk-course-list');
-
-                    courseFilter.innerHTML = '<option value="all">ทั้งหมด</option>';
-                    courseDatalist.innerHTML = '';
-                    bulkCourseDatalist.innerHTML = '';
-
-                    result.data.forEach(course => {
-                        courseFilter.appendChild(new Option(course, course));
-                        courseDatalist.appendChild(new Option(course, course));
-                        bulkCourseDatalist.appendChild(new Option(course, course));
-                    });
-                }
-            } catch (error) {
-                console.error("Could not populate course selects:", error);
+            } else {
+                gridContainer.innerHTML = `<p class="text-slate-500 text-center md:col-span-2 xl:col-span-3">ไม่พบข้อมูล</p>`;
             }
         }
 
         // --- Inline Editing Functions ---
-        function editSeat(cell) {
-            if (cell.querySelector('input')) { return; }
+        async function editSeat(cell) {
+             if (cell.querySelector('input')) return;
+             const originalValue = cell.textContent.trim();
+             const row = cell.closest('tr');
+             const id = row.dataset.id;
+             cell.innerHTML = `<input type="text" value="${originalValue}" class="w-full p-1 border rounded bg-yellow-50 text-sm">`;
+             const input = cell.querySelector('input');
+             input.focus();
+             input.select();
 
-            const originalValue = cell.textContent.trim();
-            const row = cell.closest('tr');
-            const id = row.dataset.id;
-
-            cell.innerHTML = `<input type="text" value="${originalValue}" class="w-full p-1 border rounded bg-yellow-50 text-sm">`;
-            const input = cell.querySelector('input');
-            input.focus();
-            input.select();
-
-            const saveChange = async () => {
-                const newValue = input.value.trim();
-                if (newValue === originalValue || newValue === '') {
-                    cell.textContent = originalValue;
-                    return;
-                }
-
-                cell.textContent = `...`;
-                const result = await updateSeatOnServer(id, newValue);
-
-                if (result.success) {
-                    cell.textContent = newValue;
-                    cell.classList.add('flash-success');
-                    setTimeout(() => cell.classList.remove('flash-success'), 1000);
-                } else {
-                    alert(`เกิดข้อผิดพลาด: ${result.message}`);
-                    cell.textContent = originalValue;
-                }
-            };
-
-            input.addEventListener('blur', saveChange);
-            input.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') { input.blur(); }
-                else if (e.key === 'Escape') {
-                    input.removeEventListener('blur', saveChange);
-                    cell.textContent = originalValue;
-                }
-            });
+             const saveChange = async () => {
+                 const newValue = input.value.trim();
+                 cell.textContent = originalValue; // Revert visually first
+                 if (newValue !== originalValue) {
+                    cell.textContent = `...`;
+                    const result = await serverRequest('updateSeat', { id: id, seat: newValue });
+                    if (result.success) {
+                        cell.textContent = newValue;
+                        // Update local data
+                        const student = allStudentsData.find(s => s[0] == id);
+                        if (student) student[7] = newValue;
+                    } else {
+                        alert(`เกิดข้อผิดพลาด: ${result.message}`);
+                        cell.textContent = originalValue;
+                    }
+                 }
+             };
+             input.addEventListener('blur', saveChange);
+             input.addEventListener('keydown', (e) => {
+                 if (e.key === 'Enter') input.blur();
+                 else if (e.key === 'Escape') {
+                     input.removeEventListener('blur', saveChange);
+                     cell.textContent = originalValue;
+                 }
+             });
         }
-
-        async function updateSeatOnServer(id, newSeat) {
-            try {
-                const response = await fetch(WEB_APP_URL, {
-                    method: 'POST',
-                    
-                    body: JSON.stringify({ action: 'updateSeat', data: { id: id, seat: newSeat } })
-                });
-                return await response.json();
-            } catch (error) {
-                return { success: false, message: error.message };
-            }
-        }
-
-        // --- Modal Handling ---
+        
+        // --- Modal & Form Handling ---
         function openModal(modalId) { document.getElementById(modalId).classList.replace('hidden', 'flex'); }
         function closeModal(modalId) { document.getElementById(modalId).classList.replace('flex', 'hidden'); }
 
@@ -304,7 +315,8 @@
             document.getElementById('form-last-name').value = data[3];
             document.getElementById('form-student-id').value = data[4];
             document.getElementById('form-course').value = data[5];
-            document.getElementById('form-seat').value = data[6];
+            document.getElementById('form-activity').value = data[6]; // ⭐
+            document.getElementById('form-seat').value = data[7];     // ⭐
             document.getElementById('modal-title').textContent = 'แก้ไขข้อมูลนักเรียน';
             openModal('user-modal');
         }
@@ -314,7 +326,6 @@
             openModal('bulk-add-modal');
         }
 
-        // --- Form Submission & Deletion ---
         async function handleFormSubmit(event) {
             event.preventDefault();
             const submitBtn = document.getElementById('form-submit-btn');
@@ -329,48 +340,36 @@
                 lastName: document.getElementById('form-last-name').value,
                 studentId: document.getElementById('form-student-id').value,
                 course: document.getElementById('form-course').value,
+                activity: document.getElementById('form-activity').value, // ⭐
                 seat: document.getElementById('form-seat').value
             };
-            const action = id ? 'updateUser' : 'addUser';
+            const action = id ? 'updateStudent' : 'addStudent';
 
-            try {
-                const response = await fetch(WEB_APP_URL, {
-                    method: 'POST',
-                    
-                    body: JSON.stringify({ action: action, data: userData })
-                });
-                const result = await response.json();
-                alert(result.message);
-
-                if (result.success) {
-                    closeModal('user-modal');
-                    fetchAndPopulateTable();
-                    await populateAllCourseSelects();
-                }
-            } catch (e) {
-                alert('การเชื่อมต่อล้มเหลว: ' + e.message);
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'บันทึก';
+            const result = await serverRequest(action, userData);
+            alert(result.message);
+            if (result.success) {
+                closeModal('user-modal');
+                await fetchData(); // Refresh all data
             }
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'บันทึก';
         }
         
         async function handleBulkAdd(event) {
             event.preventDefault();
             const submitBtn = document.getElementById('bulk-submit-btn');
             const course = document.getElementById('bulk-course-input').value;
+            const activity = document.getElementById('bulk-activity-input').value; // ⭐
             const bulkData = document.getElementById('bulk-data').value.trim();
 
-            if (!course || !bulkData) {
-                alert("กรุณาเลือกหรือป้อนหลักสูตร และป้อนข้อมูลนักเรียน");
+            if (!course || !activity || !bulkData) {
+                alert("กรุณากรอกข้อมูลหลักสูตร, กิจกรรม, และข้อมูลนักเรียนให้ครบถ้วน");
                 return;
             }
-
             submitBtn.disabled = true;
             submitBtn.textContent = 'กำลังเพิ่ม...';
 
-            const lines = bulkData.split('\n').filter(line => line.trim() !== '');
-            const users = lines.map(line => {
+            const users = bulkData.split('\n').filter(line => line.trim() !== '').map(line => {
                 const parts = line.split(/[\t,]/).map(p => p.trim());
                 return {
                     citizenId: parts[0] || '',
@@ -378,50 +377,42 @@
                     lastName: parts[2] || '',
                     studentId: parts[3] || '',
                     seat: parts[4] || '',
-                    course: course
+                    course: course,
+                    activity: activity // ⭐
                 };
             });
 
-            try {
-                const response = await fetch(WEB_APP_URL, {
-                    method: 'POST',
-                    
-                    body: JSON.stringify({ action: 'addMultipleUsers', data: users })
-                });
-                const result = await response.json();
-                alert(result.message);
-
-                if (result.success) {
-                    closeModal('bulk-add-modal');
-                    fetchAndPopulateTable();
-                    await populateAllCourseSelects();
-                }
-            } catch (e) {
-                alert('การดำเนินการล้มเหลว: ' + e.message);
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'เพิ่มทั้งหมด';
+            const result = await serverRequest('addMultipleUsers', users);
+            alert(result.message);
+            if (result.success) {
+                closeModal('bulk-add-modal');
+                await fetchData();
             }
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'เพิ่มทั้งหมด';
         }
 
         async function handleDelete(btn) {
             const id = btn.dataset.id;
             if (confirm(`คุณต้องการลบข้อมูลแถว ID: ${id} ใช่หรือไม่?`)) {
-                try {
-                    const response = await fetch(WEB_APP_URL, {
-                        method: 'POST',
-                        
-                        body: JSON.stringify({ action: 'deleteUser', data: { id: id } })
-                    });
-                    const result = await response.json();
-                    alert(result.message);
-                    if (result.success) {
-                        fetchAndPopulateTable();
-                        populateAllCourseSelects();
-                    }
-                } catch (e) {
-                    alert('การเชื่อมต่อล้มเหลว: ' + e.message);
+                const result = await serverRequest('deleteStudent', { id: id });
+                alert(result.message);
+                if (result.success) {
+                    await fetchData();
                 }
+            }
+        }
+        
+        // --- Centralized Server Request Function ---
+        async function serverRequest(action, data) {
+            try {
+                const response = await fetch(WEB_APP_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: action, data: data })
+                });
+                return await response.json();
+            } catch (error) {
+                return { success: false, message: error.message };
             }
         }
     </script>
