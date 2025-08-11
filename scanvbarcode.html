@@ -460,19 +460,62 @@
 
         // --- ฟังก์ชันแสดงประวัติ ---
         // (ส่วนนี้ยังคงเดิม สามารถกรองตามหลักสูตรได้)
-        async function showHistory() {
-            showScreen('history-screen');
-            const historyScreen = document.getElementById('history-screen');
-            historyScreen.innerHTML = `
-                <div style="width:100%">
-                    <h3 style="text-align:center;">ประวัติการเช็คอิน</h3>
-                    <p style="text-align:center; color:red;">Not implemented yet</p>
-                </div>
-                <div class="button-group">
-                    <button class="btn-secondary" onclick="goBack()">กลับ</button>
-                </div>
-            `;
+  function showDetails(data) {
+            currentMemberData = data;
+            document.getElementById('detail-name').textContent = data.name;
+            document.getElementById('detail-student-id').textContent = data.studentId;
+            document.getElementById('detail-course').textContent = data.course;
+            document.getElementById('detail-activity').textContent = data.activity;
+            document.getElementById('detail-seat').textContent = data.seat || 'N/A';
+            
+            const statusSpan = document.getElementById('detail-status');
+            const buttonGroup = document.getElementById('details-button-group');
+            statusSpan.className = 'status-tag';
+            
+            if (data.status === 'เข้าร่วมแล้ว') {
+                statusSpan.textContent = 'ยืนยันแล้ว';
+                statusSpan.classList.add('checked-in');
+                buttonGroup.innerHTML = `<button class="btn-dark" onclick="goBack()">สแกนคนถัดไป</button>`;
+            } else {
+                statusSpan.textContent = 'รอการยืนยัน';
+                statusSpan.classList.add('waiting');
+                buttonGroup.innerHTML = `<button class="btn-primary" id="confirm-button" onclick="handleConfirm()">ยืนยันการเข้าร่วม</button>`;
+            }
+            showScreen('details-screen');
         }
+
+        async function handleConfirm() {
+            if (!currentMemberData) return;
+            const confirmButton = document.getElementById('confirm-button');
+            confirmButton.disabled = true;
+            confirmButton.textContent = 'กำลังบันทึก...';
+
+            try {
+                const response = await fetch(WEB_APP_URL, {
+                    method: 'POST', 
+                    body: JSON.stringify({ 
+                        action: 'confirm', 
+                        id: currentMemberData.id, 
+                        course: currentMemberData.course,
+                        activity: currentMemberData.activity
+                    })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    showMessage('ยืนยันข้อมูลสำเร็จ!', 'success');
+                    showDetails({ ...currentMemberData, status: 'เข้าร่วมแล้ว' }); // Refresh details view
+                } else {
+                    showMessage(`เกิดข้อผิดพลาด: ${result.message}`, 'error');
+                    confirmButton.disabled = false;
+                    confirmButton.textContent = 'ยืนยันการเข้าร่วม';
+                }
+            } catch (error) {
+                showMessage('การเชื่อมต่อผิดพลาด', 'error');
+                confirmButton.disabled = false;
+                confirmButton.textContent = 'ยืนยันการเข้าร่วม';
+            }
+        }
+
 
         // --- เริ่มต้นแอป ---
         document.addEventListener('DOMContentLoaded', () => {
