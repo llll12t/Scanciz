@@ -44,10 +44,10 @@
     <template id="register-template">
         <div id="register-view" class="bg-white p-8 rounded-2xl shadow-lg text-center">
             <h1 id="register-title" class="text-2xl font-bold text-primary-blue mb-2">ลงทะเบียน</h1>
-            <p id="register-subtitle" class="text-slate-500 mb-6">กรุณากรอกเลขบัตรประชาชน 13 หลัก</p>
+            <p id="register-subtitle" class="text-slate-500 mb-6">กรุณากรอกรหัสนักศึกษา</p>
             <form id="liff-form" onsubmit="handleRegister(event)">
                 <div class="mb-4">
-                    <input type="tel" id="citizen-id-input" pattern="[0-9]*" maxlength="13" placeholder="เลขบัตรประชาชน" class="w-full text-center text-xl tracking-wider p-3 border-2 border-slate-200 rounded-lg" required>
+                    <input type="text" id="student-id-input" placeholder="รหัสนักศึกษา" class="w-full text-center text-xl tracking-wider p-3 border-2 border-slate-200 rounded-lg" required>
                 </div>
                 <button type="submit" id="submit-button" class="w-full bg-primary-yellow text-primary-blue font-bold py-3 px-5 rounded-lg">ยืนยัน</button>
             </form>
@@ -89,7 +89,6 @@
             document.getElementById('loading-state').classList.add('hidden');
             const registerContainer = document.getElementById('register-container');
             
-            // ย้ายฟอร์มลงทะเบียนมาไว้ใน Container ที่ถูกต้อง
             const template = document.getElementById('register-template');
             registerContainer.innerHTML = '';
             registerContainer.appendChild(template.content.cloneNode(true));
@@ -110,8 +109,7 @@
                  document.getElementById('main-content').innerHTML = `<p class="text-red-500 text-center">การเชื่อมต่อล้มเหลว</p>`;
             }
         }
-
-        // ⭐ NEW: ฟังก์ชันสลับแท็บ
+        
         function switchTab(tabName) {
             const tabs = ['current', 'history'];
             tabs.forEach(tab => {
@@ -129,7 +127,6 @@
             });
         }
         
-        // ⭐ UPDATE: ฟังก์ชัน showProfile เพื่อกรองและแสดงผลตามแท็บ
         function showProfile(registrations) {
             document.getElementById('profile-welcome-name').textContent = registrations[0].name;
             
@@ -154,10 +151,9 @@
             }
             
             document.getElementById('profile-view').classList.remove('hidden');
-            switchTab('current'); // แสดงแท็บปัจจุบันเป็นค่าเริ่มต้น
+            switchTab('current'); 
         }
         
-        // ⭐ NEW: ฟังก์ชันสร้างการ์ด (เพื่อลดโค้ดซ้ำซ้อน)
         function createRegistrationCard(reg) {
             const card = document.createElement('div');
             card.className = 'bg-white p-4 rounded-xl border border-slate-200';
@@ -186,7 +182,8 @@
 
         async function handleRegister(event) {
             event.preventDefault();
-            const citizenId = document.getElementById('citizen-id-input').value;
+            // ⭐ CHANGED: ดึงค่าจาก input รหัสนักศึกษา
+            const studentId = document.getElementById('student-id-input').value;
             const statusDiv = document.getElementById('status-message');
             const submitBtn = document.getElementById('submit-button');
             submitBtn.disabled = true;
@@ -197,7 +194,8 @@
                     method: 'POST',
                     body: JSON.stringify({
                         action: 'updateLineId',
-                        data: { citizenId: citizenId, lineUserId: lineUserId }
+                        // ⭐ CHANGED: ส่ง studentId แทน citizenId
+                        data: { studentId: studentId, lineUserId: lineUserId }
                     }),
                 });
                 const result = await response.json();
