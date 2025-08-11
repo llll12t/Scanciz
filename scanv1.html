@@ -20,6 +20,8 @@
             --dark-text: #333333;
             --light-text: #888888;
             --border-color: #EEEEEE;
+            --success-green: #28a745;
+            --error-red: #dc3545;
         }
         body { 
             margin: 0; 
@@ -117,7 +119,7 @@
             font-weight: 700; 
             font-family: 'Sarabun', sans-serif; 
             cursor: pointer; 
-            transition: background-color 0.3s; 
+            transition: background-color 0.3s, border-color 0.3s; 
         }
         button:disabled { 
             background-color: #a0a0a0 !important;
@@ -137,7 +139,32 @@
         #camera-scanner-screen { text-align: center; }
         #camera-feed-container { position: relative; width: 100%; flex-grow: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 16px; margin-bottom: 15px; background-color: black;}
         #video-feed { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
-        #card-frame { position: absolute; width: 90%; height: 0; padding-bottom: 56.25%; border: 3px solid rgba(255, 255, 255, 0.9); border-radius: 12px; box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6); }
+        #card-frame { 
+            position: absolute; 
+            width: 90%; 
+            height: 0; 
+            padding-bottom: 56.25%; 
+            border: 3px solid rgba(255, 255, 255, 0.9); 
+            border-radius: 12px; 
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6); 
+            transition: border-color 0.4s ease;
+        }
+
+        /* --- ✨ CSS ที่เพิ่มใหม่ --- */
+        @keyframes pulseGreen {
+            0% { box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6), 0 0 0 0 rgba(40, 167, 69, 0.7); }
+            70% { box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6), 0 0 0 10px rgba(40, 167, 69, 0); }
+            100% { box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6), 0 0 0 0 rgba(40, 167, 69, 0); }
+        }
+        #card-frame.is-checking {
+            border-color: var(--success-green);
+            animation: pulseGreen 1.5s infinite;
+        }
+        #card-frame.scan-error {
+            border-color: var(--error-red);
+        }
+        /* --- สิ้นสุดส่วนที่เพิ่ม --- */
+
         #ocr-status { margin: 15px 0; font-weight: 600; color: var(--primary-blue); min-height: 24px;}
         .info-details p { margin: 0 0 10px 0; font-size: 0.95em; }
         .info-details p strong { display: block; font-size: 1.1em; color: var(--dark-text); }
@@ -282,22 +309,14 @@
             showScreen(backMap[activeScreenId] || 'home-screen');
         }
 
-function resetAndGoHome() {
-    // 1. ลบข้อมูลกิจกรรมที่บันทึกไว้ในหน่วยความจำของเบราว์เซอร์
-    localStorage.removeItem('savedActivity');
-
-    // 2. เข้าถึง element ของ dropdown กิจกรรม
-    const activityDropdown = document.getElementById('activity-select-dropdown');
-    
-    // 3. ตรวจสอบว่าหา dropdown เจอหรือไม่ แล้วสั่งให้รีเซ็ต
-    //    โดยการบังคับให้กลับไปเลือกตัวเลือกแรกสุด (ลำดับที่ 0)
-    if (activityDropdown) {
-        activityDropdown.selectedIndex = 0; 
-    }
-
-    // 4. กลับไปที่หน้าจอหลัก
-    showScreen('home-screen');
-}
+        function resetAndGoHome() {
+            localStorage.removeItem('savedActivity');
+            const activityDropdown = document.getElementById('activity-select-dropdown');
+            if (activityDropdown) {
+                activityDropdown.selectedIndex = 0; 
+            }
+            showScreen('home-screen');
+        }
         function showMessage(text, type) {
             const msgBox = document.getElementById('message-box');
             msgBox.textContent = text;
@@ -364,11 +383,13 @@ function resetAndGoHome() {
             }
         }
 
-        // --- ฟังก์ชัน OCR Scanner ---
+        // --- ฟังก์ชัน OCR Scanner (ปรับปรุงใหม่) ---
         async function initCameraScanner() {
             showScreen('camera-scanner-screen');
             const video = document.getElementById('video-feed');
             const statusDiv = document.getElementById('ocr-status');
+            const cardFrame = document.getElementById('card-frame');
+            cardFrame.className = ''; // รีเซ็ต class ของกรอบ
             statusDiv.textContent = 'กำลังเริ่มต้นกล้อง...';
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } } });
@@ -392,92 +413,122 @@ function resetAndGoHome() {
                 videoStream.getTracks().forEach(track => track.stop());
                 videoStream = null;
             }
+            const cardFrame = document.getElementById('card-frame');
+            if(cardFrame) cardFrame.className = ''; // ล้าง class animation
             if (navigate) showScreen('course-select-screen');
         }
-
+        
+        // --- ✨ ฟังก์ชันที่ปรับปรุงใหม่ ---
         async function startAutoScanLoop() {
             if (!isScanning) return;
+            
             const video = document.getElementById('video-feed');
             const canvas = document.getElementById('canvas');
             const statusDiv = document.getElementById('ocr-status');
+            const cardFrame = document.getElementById('card-frame');
 
             if (!video || video.readyState < video.HAVE_ENOUGH_DATA || video.videoWidth === 0) {
                 if(isScanning) scanTimeout = setTimeout(startAutoScanLoop, 1000);
                 return;
             }
-
+            
+            statusDiv.textContent = "🔍 กำลังวิเคราะห์ภาพ...";
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-            statusDiv.textContent = "🔍 กำลังตรวจสอบภาพ...";
 
             try {
                 const { data: { text } } = await Tesseract.recognize(canvas, 'tha+eng');
                 const idMatch = text.match(/\d[\d\s\-]{11,20}/);
+                
                 if (idMatch && idMatch[0]) {
                     const idNumber = idMatch[0].replace(/\D/g, '');
                     if (idNumber.length === 13) {
-                        isScanning = false;
-                        statusDiv.textContent = `✅ พบเลขบัตรแล้ว! กำลังตรวจสอบ...`;
-                        await handleSearch(idNumber);
-                        return;
+                        isScanning = false; // หยุดการสแกนชั่วคราว
+                        statusDiv.textContent = `✅ พบเลข 13 หลัก! กำลังตรวจสอบ...`;
+                        cardFrame.classList.add('is-checking'); // เพิ่ม Animation กรอบเขียว
+                        await handleSearch(idNumber); // ส่งไปค้นหา
+                        return; // จบการทำงานของ Loop นี้
                     }
                 }
             } catch (e) {
                 console.error("OCR Error:", e);
                 statusDiv.textContent = "❌ เกิดข้อผิดพลาดในการอ่านภาพ";
             }
-            if (isScanning) { scanTimeout = setTimeout(startAutoScanLoop, 1500); }
+            
+            // ถ้ายังไม่เจอเลขที่ถูกต้องและยังอยู่ในโหมดสแกน ให้วน loop ต่อไป
+            if (isScanning) { 
+                statusDiv.textContent = 'จัดบัตรให้อยู่ในกรอบ...';
+                scanTimeout = setTimeout(startAutoScanLoop, 1500); 
+            }
         }
 
-        // --- ฟังก์ชันจัดการข้อมูล ---
-        async function handleSearch(citizenId, onErrorCallback) {
+        // --- ✨ ฟังก์ชันที่ปรับปรุงใหม่ ---
+        async function handleSearch(citizenId) {
             const activity = document.getElementById('activity-select-dropdown').value;
-            const statusDiv = document.querySelector('.screen.active').querySelector('#ocr-status, #manual-search-status');
-            statusDiv.textContent = 'กำลังค้นหาข้อมูล...';
+            const statusDiv = document.querySelector('#ocr-status, #manual-search-status');
+            const cardFrame = document.getElementById('card-frame');
             
             try {
                 const encodedActivity = encodeURIComponent(activity);
                 const response = await fetch(`${WEB_APP_URL}?action=search&id=${citizenId}&activity=${encodedActivity}`);
                 const data = await response.json();
+                
+                cardFrame?.classList.remove('is-checking'); // เอากรอบเขียวออกไม่ว่าจะเจอหรือไม่
+
                 if (data.found) {
                     stopCamera(false);
                     showDetails(data);
                 } else {
-                    const errorMessage = `ไม่พบเลขบัตร "${citizenId}" ในกิจกรรมนี้`;
-                    if (onErrorCallback) {
-                        onErrorCallback(errorMessage);
-                    } else {
-                         statusDiv.textContent = errorMessage + '... ลองอีกครั้ง';
-                         setTimeout(() => {
-                            if (document.getElementById('camera-scanner-screen').classList.contains('active')) {
-                                statusDiv.textContent = 'จัดบัตรให้อยู่ในกรอบ...';
-                                isScanning = true;
-                                startAutoScanLoop();
-                            }
-                         }, 2500);
-                    }
+                    // ไม่พบข้อมูล
+                    statusDiv.textContent = `❌ ไม่พบข้อมูล "${citizenId}"... เริ่มสแกนใหม่`;
+                    cardFrame?.classList.add('scan-error'); // แสดงกรอบแดง
+
+                    setTimeout(() => {
+                        // กลับสู่สถานะสแกนปกติหลังจากแสดง error 3 วินาที
+                        if (document.getElementById('camera-scanner-screen').classList.contains('active')) {
+                            cardFrame?.classList.remove('scan-error');
+                            statusDiv.textContent = 'จัดบัตรให้อยู่ในกรอบ...';
+                            isScanning = true;
+                            startAutoScanLoop();
+                        }
+                    }, 3000);
                 }
             } catch (error) {
+                cardFrame?.classList.remove('is-checking');
                 const errorMessage = 'การเชื่อมต่อล้มเหลว';
-                if (onErrorCallback) onErrorCallback(errorMessage);
-                else {
-                    alert(errorMessage);
-                    goBack();
-                }
+                alert(errorMessage);
+                goBack();
             }
         }
         
+        // --- ฟังก์ชันที่ปรับปรุงสำหรับการค้นหาแบบกรอกเอง ---
         async function handleManualSearch() {
             const id = document.getElementById('manual-id-input').value;
+            const statusDiv = document.getElementById('manual-search-status');
+
             if(!id || id.length !== 13) {
-                document.getElementById('manual-search-status').textContent = 'กรุณากรอกเลข 13 หลักให้ถูกต้อง';
+                statusDiv.textContent = 'กรุณากรอกเลข 13 หลักให้ถูกต้อง';
                 return;
             }
-            await handleSearch(id, (errorMessage) => {
-                document.getElementById('manual-search-status').textContent = errorMessage;
-            });
+            
+            statusDiv.textContent = 'กำลังค้นหาข้อมูล...';
+            const activity = document.getElementById('activity-select-dropdown').value;
+            
+            try {
+                const response = await fetch(`${WEB_APP_URL}?action=search&id=${id}&activity=${encodeURIComponent(activity)}`);
+                const data = await response.json();
+                
+                if (data.found) {
+                    showDetails(data);
+                } else {
+                    statusDiv.textContent = `ไม่พบเลขบัตร "${id}" ในกิจกรรมนี้`;
+                }
+            } catch (error) {
+                statusDiv.textContent = 'การเชื่อมต่อล้มเหลว';
+            }
         }
+
 
         function showDetails(data) {
             currentMemberData = data;
