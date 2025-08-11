@@ -106,7 +106,7 @@
             border: 1px solid var(--border-color);
             font-family: 'Sarabun', sans-serif;
             font-size: 1em;
-            box-sizing: border-box; /* Important for consistent sizing */
+            box-sizing: border-box;
         }
         button { 
             width: 100%; 
@@ -145,6 +145,17 @@
         #message-box { text-align: center; margin-top: 20px; font-weight: bold; padding: 12px; border-radius: 8px; display: none; }
         .message-success { background-color: #d4edda; color: #155724; }
         .message-error { background-color: #f8d7da; color: #721c24; }
+        
+        /* History Screen Styles */
+        #history-filter-container { display: flex; gap: 10px; align-items: center; margin-bottom: 15px; }
+        #log-list { max-height: 60vh; overflow-y: auto; padding: 5px 15px; }
+        .log-item { display: flex; justify-content: space-between; align-items: flex-start; padding: 12px 5px; border-bottom: 1px solid var(--border-color); }
+        .log-item:last-child { border-bottom: none; }
+        .log-name { font-weight: 600; font-size: 1em; margin-bottom: 2px; }
+        .log-time { font-size: 0.8em; color: var(--light-text); }
+        .log-extra { text-align: right; }
+        .log-course { font-size: 0.9em; font-weight: 600; }
+        .log-activity { font-size: 0.8em; color: var(--light-text); }
     </style>
 </head>
 <body>
@@ -204,7 +215,8 @@
                 </div>
             </div>
             
-            <div id="history-screen" class="screen"></div>
+            <div id="history-screen" class="screen">
+                </div>
 
             <div id="details-screen" class="screen">
                 <div>
@@ -247,7 +259,7 @@
             const titles = {
                 'home-screen': 'เช็คอินกิจกรรม',
                 'course-select-screen': 'เลือกกิจกรรม',
-                'history-screen': 'ประวัติ',
+                'history-screen': 'ประวัติการเช็คอิน',
                 'details-screen': 'รายละเอียด',
                 'camera-scanner-screen': 'สแกนบาร์โค้ด',
                 'manual-input-screen': 'กรอกรหัส'
@@ -353,7 +365,6 @@
         function initBarcodeScanner() {
             showScreen('camera-scanner-screen');
             const statusDiv = document.getElementById('scan-status');
-            const readerDiv = document.getElementById('barcode-reader');
             document.getElementById('scanner-button-container').innerHTML = '';
 
             html5QrCode = new Html5Qrcode("barcode-reader");
@@ -445,7 +456,7 @@
                 const result = await response.json();
                 if (result.success) {
                     showMessage('ยืนยันข้อมูลสำเร็จ!', 'success');
-                    showDetails({ ...currentMemberData, status: 'เข้าร่วมแล้ว' }); // Refresh details view
+                    showDetails({ ...currentMemberData, status: 'เข้าร่วมแล้ว' });
                 } else {
                     showMessage(`เกิดข้อผิดพลาด: ${result.message}`, 'error');
                     confirmButton.disabled = false;
@@ -459,63 +470,90 @@
         }
 
         // --- ฟังก์ชันแสดงประวัติ ---
-        // (ส่วนนี้ยังคงเดิม สามารถกรองตามหลักสูตรได้)
-  function showDetails(data) {
-            currentMemberData = data;
-            document.getElementById('detail-name').textContent = data.name;
-            document.getElementById('detail-student-id').textContent = data.studentId;
-            document.getElementById('detail-course').textContent = data.course;
-            document.getElementById('detail-activity').textContent = data.activity;
-            document.getElementById('detail-seat').textContent = data.seat || 'N/A';
+        async function showHistory() {
+            showScreen('history-screen');
+            const historyScreen = document.getElementById('history-screen');
             
-            const statusSpan = document.getElementById('detail-status');
-            const buttonGroup = document.getElementById('details-button-group');
-            statusSpan.className = 'status-tag';
+            // สร้างโครงสร้าง UI ของหน้าประวัติ
+            historyScreen.innerHTML = `
+                <div style="display: flex; flex-direction: column; height: 100%;">
+                    <div id="history-filter-container">
+                        <label for="history-activity-filter" style="margin-bottom:0; flex-shrink: 0;">กิจกรรม:</label>
+                        <select id="history-activity-filter" onchange="fetchAndDisplayLogs()"></select>
+                    </div>
+                    <div id="log-list" class="card" style="flex-grow: 1;">
+                        <p style="text-align:center;">กำลังโหลด...</p>
+                    </div>
+                </div>
+                <div class="button-group">
+                    <button class="btn-secondary" onclick="goBack()">กลับ</button>
+                </div>`;
             
-            if (data.status === 'เข้าร่วมแล้ว') {
-                statusSpan.textContent = 'ยืนยันแล้ว';
-                statusSpan.classList.add('checked-in');
-                buttonGroup.innerHTML = `<button class="btn-dark" onclick="goBack()">สแกนคนถัดไป</button>`;
-            } else {
-                statusSpan.textContent = 'รอการยืนยัน';
-                statusSpan.classList.add('waiting');
-                buttonGroup.innerHTML = `<button class="btn-primary" id="confirm-button" onclick="handleConfirm()">ยืนยันการเข้าร่วม</button>`;
-            }
-            showScreen('details-screen');
+            await populateHistoryFilter(); // เรียกฟังก์ชันเพื่อโหลดตัวกรอง
+            await fetchAndDisplayLogs(); // เรียกฟังก์ชันเพื่อโหลดข้อมูลประวัติเริ่มต้น
         }
 
-        async function handleConfirm() {
-            if (!currentMemberData) return;
-            const confirmButton = document.getElementById('confirm-button');
-            confirmButton.disabled = true;
-            confirmButton.textContent = 'กำลังบันทึก...';
-
+        async function populateHistoryFilter() {
+            const filterDropdown = document.getElementById('history-activity-filter');
+            if (!filterDropdown) return;
+            
             try {
-                const response = await fetch(WEB_APP_URL, {
-                    method: 'POST', 
-                    body: JSON.stringify({ 
-                        action: 'confirm', 
-                        id: currentMemberData.id, 
-                        course: currentMemberData.course,
-                        activity: currentMemberData.activity
-                    })
-                });
+                // ดึงรายการกิจกรรมที่ไม่ซ้ำจาก Log มาสร้างเป็นตัวเลือก
+                const response = await fetch(`${WEB_APP_URL}?action=getLoggedActivities`);
                 const result = await response.json();
-                if (result.success) {
-                    showMessage('ยืนยันข้อมูลสำเร็จ!', 'success');
-                    showDetails({ ...currentMemberData, status: 'เข้าร่วมแล้ว' }); // Refresh details view
-                } else {
-                    showMessage(`เกิดข้อผิดพลาด: ${result.message}`, 'error');
-                    confirmButton.disabled = false;
-                    confirmButton.textContent = 'ยืนยันการเข้าร่วม';
+                
+                filterDropdown.innerHTML = '<option value="all">ทั้งหมด</option>'; // ตัวเลือกเริ่มต้น
+                if (result.success && result.data.length > 0) {
+                    result.data.forEach(activity => {
+                        const option = document.createElement('option');
+                        option.value = activity;
+                        option.textContent = activity;
+                        filterDropdown.appendChild(option);
+                    });
                 }
             } catch (error) {
-                showMessage('การเชื่อมต่อผิดพลาด', 'error');
-                confirmButton.disabled = false;
-                confirmButton.textContent = 'ยืนยันการเข้าร่วม';
+                console.error("Could not populate history filter:", error);
+                filterDropdown.innerHTML = '<option value="all">โหลดล้มเหลว</option>';
             }
         }
 
+        async function fetchAndDisplayLogs() {
+            const logListDiv = document.getElementById('log-list');
+            const filterDropdown = document.getElementById('history-activity-filter');
+            if (!logListDiv || !filterDropdown) return;
+
+            const selectedActivity = filterDropdown.value;
+            logListDiv.innerHTML = '<p style="text-align:center;">กำลังโหลดข้อมูล...</p>';
+
+            try {
+                const response = await fetch(`${WEB_APP_URL}?action=getLog&activity=${encodeURIComponent(selectedActivity)}`);
+                const result = await response.json();
+
+                if (result.success && result.data.length > 0) {
+                    logListDiv.innerHTML = ''; // เคลียร์ข้อมูลเก่า
+                    result.data.forEach(log => {
+                        const item = document.createElement('div');
+                        item.className = 'log-item';
+                        // log[0] = Timestamp, log[2] = Name, log[3] = Course, log[4] = Activity
+                        const logTime = new Date(log[0]).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' });
+                        item.innerHTML = `
+                            <div>
+                                <div class="log-name">${log[2]} ✅</div>
+                                <div class="log-time">${logTime} น.</div>
+                            </div>
+                            <div class="log-extra">
+                                <div class="log-course">${log[3]}</div>
+                                <div class="log-activity">${log[4]}</div>
+                            </div>`;
+                        logListDiv.appendChild(item);
+                    });
+                } else {
+                    logListDiv.innerHTML = '<p style="text-align:center;">ไม่พบข้อมูลประวัติ</p>';
+                }
+            } catch (error) {
+                logListDiv.innerHTML = '<p style="text-align:center; color:red;">ไม่สามารถโหลดข้อมูลได้</p>';
+            }
+        }
 
         // --- เริ่มต้นแอป ---
         document.addEventListener('DOMContentLoaded', () => {
