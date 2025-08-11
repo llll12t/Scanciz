@@ -282,16 +282,20 @@
             showScreen(backMap[activeScreenId] || 'home-screen');
         }
 
-  function resetAndGoHome() {
+function resetAndGoHome() {
+    // 1. ลบข้อมูลกิจกรรมที่บันทึกไว้ในหน่วยความจำของเบราว์เซอร์
     localStorage.removeItem('savedActivity');
-    
-    // --- เพิ่มส่วนนี้เข้าไป ---
-    const activityDropdown = document.getElementById('activity-select-dropdown');
-    if (activityDropdown) {
-        activityDropdown.selectedIndex = 0; // ตั้งค่าให้เลือกตัวเลือกแรกสุด
-    }
-    // -------------------------
 
+    // 2. เข้าถึง element ของ dropdown กิจกรรม
+    const activityDropdown = document.getElementById('activity-select-dropdown');
+    
+    // 3. ตรวจสอบว่าหา dropdown เจอหรือไม่ แล้วสั่งให้รีเซ็ต
+    //    โดยการบังคับให้กลับไปเลือกตัวเลือกแรกสุด (ลำดับที่ 0)
+    if (activityDropdown) {
+        activityDropdown.selectedIndex = 0; 
+    }
+
+    // 4. กลับไปที่หน้าจอหลัก
     showScreen('home-screen');
 }
         function showMessage(text, type) {
