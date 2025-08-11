@@ -282,11 +282,18 @@
             showScreen(backMap[activeScreenId] || 'home-screen');
         }
 
-        function resetAndGoHome() {
-            localStorage.removeItem('savedActivity');
-            showScreen('home-screen');
-        }
+  function resetAndGoHome() {
+    localStorage.removeItem('savedActivity');
+    
+    // --- เพิ่มส่วนนี้เข้าไป ---
+    const activityDropdown = document.getElementById('activity-select-dropdown');
+    if (activityDropdown) {
+        activityDropdown.selectedIndex = 0; // ตั้งค่าให้เลือกตัวเลือกแรกสุด
+    }
+    // -------------------------
 
+    showScreen('home-screen');
+}
         function showMessage(text, type) {
             const msgBox = document.getElementById('message-box');
             msgBox.textContent = text;
