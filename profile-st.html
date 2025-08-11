@@ -93,16 +93,16 @@
             }
         }
 
-        // ⭐ UPDATED: แก้ไขฟังก์ชันนี้เพื่อสลับการแสดงผลระหว่าง "ฟอร์มลงทะเบียน" และ "ปุ่มรีเฟรช"
+        // ⭐ UPDATED: ปรับปรุงลำดับการแสดงผล
         async function checkRegistrationStatus(userId) {
             document.getElementById('loading-state').classList.add('hidden');
             const registerContainer = document.getElementById('register-container');
             
-            // นำ Template มาใส่ใน Container ทุกครั้งที่เรียกใช้ เพื่อ Reset สถานะ
+            // เตรียมเนื้อหาใน Template แต่ยังไม่แสดงผล
             const template = document.getElementById('register-template');
             registerContainer.innerHTML = '';
             registerContainer.appendChild(template.content.cloneNode(true));
-            registerContainer.classList.remove('hidden');
+            // **[สำคัญ]** เราจะยังไม่สั่ง `registerContainer.classList.remove('hidden');` ตรงนี้
 
             try {
                 const response = await fetch(`${WEB_APP_URL}?action=searchByLineId&lineId=${userId}`);
@@ -111,31 +111,31 @@
                 if (result.found && Array.isArray(result.data) && result.data.length > 0) {
                     // --- กรณีพบข้อมูล (ผู้ใช้เก่า) ---
                     showProfile(result.data);
-
-                    // ซ่อนฟอร์มลงทะเบียน
                     document.getElementById('register-view').classList.add('hidden');
                     
-                    // แสดงปุ่มรีเฟรช
                     const refreshView = document.getElementById('refresh-view');
                     refreshView.classList.remove('hidden');
-
-                    // เพิ่ม Event Listener ให้ปุ่มรีเฟรช
                     document.getElementById('refresh-button').onclick = () => {
                         const btn = document.getElementById('refresh-button');
                         btn.disabled = true;
                         btn.textContent = 'กำลังอัปเดต...';
-                        checkRegistrationStatus(userId); // เรียกฟังก์ชันตัวเองเพื่อดึงข้อมูลใหม่
+                        checkRegistrationStatus(userId);
                     };
 
                 } else {
                     // --- กรณีไม่พบข้อมูล (ผู้ใช้ใหม่) ---
                     document.getElementById('profile-view').classList.add('hidden');
-                    // แสดงฟอร์มลงทะเบียน และซ่อนปุ่มรีเฟรช
                     document.getElementById('register-view').classList.remove('hidden');
                     document.getElementById('refresh-view').classList.add('hidden');
                 }
+
+                // ⭐ NEW: แสดง Container หลักหลังจากตัดสินใจแล้วว่าจะโชว์อะไร
+                registerContainer.classList.remove('hidden');
+
             } catch (e) {
-                 document.getElementById('register-container').innerHTML = `<p class="text-red-500 text-center">การเชื่อมต่อล้มเหลว</p>`;
+                 registerContainer.innerHTML = `<p class="text-red-500 text-center">การเชื่อมต่อล้มเหลว</p>`;
+                 // แสดง Container เพื่อบอก Error
+                 registerContainer.classList.remove('hidden');
             }
         }
         
