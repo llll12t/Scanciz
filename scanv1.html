@@ -179,13 +179,10 @@
 
             <div id="course-select-screen" class="screen">
                 <div style="width:100%;">
-                    <h3 style="text-align:center; margin-top:0;">กรุณาเลือกข้อมูล</h3>
+                    <h3 style="text-align:center; margin-top:0;">กรุณาเลือกกิจกรรม</h3>
                     <div class="card">
-                        <label for="course-select-dropdown">หลักสูตร</label>
-                        <select id="course-select-dropdown" onchange="handleCourseChange()"></select>
-                        <br><br>
                         <label for="activity-select-dropdown">กิจกรรม</label>
-                        <select id="activity-select-dropdown" onchange="handleActivityChange()" disabled></select>
+                        <select id="activity-select-dropdown" onchange="handleActivityChange()"></select>
                         <div id="course-select-status" style="text-align:center; color: red; margin-top: 15px; min-height: 20px;"></div>
                     </div>
                 </div>
@@ -274,7 +271,7 @@
             
             const titles = {
                 'home-screen': 'เช็คอินกิจกรรม',
-                'course-select-screen': 'เลือกข้อมูล',
+                'course-select-screen': 'เลือกกิจกรรม',
                 'history-screen': 'ประวัติ',
                 'details-screen': 'รายละเอียด',
                 'camera-scanner-screen': 'สแกนบัตรประชาชน',
@@ -298,7 +295,6 @@
         }
 
         function resetAndGoHome() {
-            localStorage.removeItem('savedCourse');
             localStorage.removeItem('savedActivity');
             showScreen('home-screen');
         }
@@ -318,57 +314,15 @@
         // --- ฟังก์ชันจัดการการเลือกข้อมูล ---
         async function initSelection() {
             showScreen('course-select-screen');
-            const courseDropdown = document.getElementById('course-select-dropdown');
-            courseDropdown.disabled = true;
-            courseDropdown.innerHTML = '<option value="">-- กำลังโหลด... --</option>';
-            try {
-                const response = await fetch(`${WEB_APP_URL}?action=getCourses`);
-                const result = await response.json();
-                if (result.success && result.data.length > 0) {
-                    courseDropdown.innerHTML = '<option value="">-- กรุณาเลือกหลักสูตร --</option>';
-                    result.data.forEach(course => {
-                        const option = document.createElement('option');
-                        option.value = course;
-                        option.textContent = course;
-                        courseDropdown.appendChild(option);
-                    });
-                    const savedCourse = localStorage.getItem('savedCourse');
-                    if (savedCourse) {
-                        courseDropdown.value = savedCourse;
-                        await handleCourseChange();
-                    }
-                } else {
-                    courseDropdown.innerHTML = '<option value="">-- ไม่พบหลักสูตร --</option>';
-                }
-            } catch (error) {
-                courseDropdown.innerHTML = '<option value="">-- โหลดล้มเหลว --</option>';
-            } finally {
-                courseDropdown.disabled = false;
-            }
-        }
-
-        async function handleCourseChange() {
-            const courseDropdown = document.getElementById('course-select-dropdown');
             const activityDropdown = document.getElementById('activity-select-dropdown');
-            const selectedCourse = courseDropdown.value;
-
-            localStorage.setItem('savedCourse', selectedCourse);
-            localStorage.removeItem('savedActivity');
-            
-            activityDropdown.innerHTML = '<option value="">-- กำลังโหลด... --</option>';
             activityDropdown.disabled = true;
-
-            if (!selectedCourse) {
-                activityDropdown.innerHTML = '<option value="">-- เลือกหลักสูตรก่อน --</option>';
-                return;
-            }
-
+            activityDropdown.innerHTML = '<option value="">-- กำลังโหลดกิจกรรม... --</option>';
+            
             try {
-                const encodedCourse = encodeURIComponent(selectedCourse);
-                const response = await fetch(`${WEB_APP_URL}?action=getActivities&course=${encodedCourse}`);
+                const response = await fetch(`${WEB_APP_URL}?action=getActivities`);
                 const result = await response.json();
                 
-                if(result.success && result.data.length > 0) {
+                if (result.success && result.data.length > 0) {
                     activityDropdown.innerHTML = '<option value="">-- กรุณาเลือกกิจกรรม --</option>';
                     result.data.forEach(activity => {
                         const option = document.createElement('option');
@@ -393,15 +347,16 @@
         function handleActivityChange() {
             const selectedActivity = document.getElementById('activity-select-dropdown').value;
             localStorage.setItem('savedActivity', selectedActivity);
+            document.getElementById('course-select-status').textContent = '';
         }
 
         function proceedWithCheckIn(mode) {
-            const course = document.getElementById('course-select-dropdown').value;
             const activity = document.getElementById('activity-select-dropdown').value;
-            if (!course || !activity) {
-                document.getElementById('course-select-status').textContent = 'กรุณาเลือกข้อมูลให้ครบถ้วน';
+            if (!activity) {
+                document.getElementById('course-select-status').textContent = 'กรุณาเลือกกิจกรรม';
                 return;
             }
+            document.getElementById('course-select-status').textContent = '';
             if (mode === 'scan') { initCameraScanner(); } 
             else if (mode === 'manual') { 
                 document.getElementById('manual-id-input').value = '';
@@ -478,15 +433,13 @@
 
         // --- ฟังก์ชันจัดการข้อมูล ---
         async function handleSearch(citizenId, onErrorCallback) {
-            const course = document.getElementById('course-select-dropdown').value;
             const activity = document.getElementById('activity-select-dropdown').value;
             const statusDiv = document.querySelector('.screen.active').querySelector('#ocr-status, #manual-search-status');
             statusDiv.textContent = 'กำลังค้นหาข้อมูล...';
             
             try {
-                const encodedCourse = encodeURIComponent(course);
                 const encodedActivity = encodeURIComponent(activity);
-                const response = await fetch(`${WEB_APP_URL}?action=search&id=${citizenId}&course=${encodedCourse}&activity=${encodedActivity}`);
+                const response = await fetch(`${WEB_APP_URL}?action=search&id=${citizenId}&activity=${encodedActivity}`);
                 const data = await response.json();
                 if (data.found) {
                     stopCamera(false);
@@ -496,8 +449,14 @@
                     if (onErrorCallback) {
                         onErrorCallback(errorMessage);
                     } else {
-                        alert(errorMessage);
-                        initCameraScanner();
+                         statusDiv.textContent = errorMessage + '... ลองอีกครั้ง';
+                         setTimeout(() => {
+                            if (document.getElementById('camera-scanner-screen').classList.contains('active')) {
+                                statusDiv.textContent = 'จัดบัตรให้อยู่ในกรอบ...';
+                                isScanning = true;
+                                startAutoScanLoop();
+                            }
+                         }, 2500);
                     }
                 }
             } catch (error) {
@@ -599,25 +558,12 @@
         }
 
         async function showHistory() {
-            const historyScreen = document.getElementById('history-screen');
-            historyScreen.innerHTML = `
-                <div style="display: flex; flex-direction: column; height: 100%;">
-                    <div id="history-filter-container">
-                        <label for="history-course-filter" style="margin-bottom:0; flex-shrink: 0;">หลักสูตร:</label>
-                        <select id="history-course-filter" onchange="showHistory()"></select>
-                    </div>
-                    <div id="log-list" class="card" style="flex-grow: 1;">
-                        <p style="text-align:center;">กำลังโหลด...</p>
-                    </div>
-                </div>
-                <div class="button-group">
-                    <button class="btn-secondary" onclick="goBack()">กลับ</button>
-                </div>`;
+            showScreen('history-screen');
+            const logListDiv = document.getElementById('log-list');
+            logListDiv.innerHTML = '<p style="text-align:center;">กำลังโหลด...</p>';
 
             await populateHistoryFilter();
-            showScreen('history-screen');
             
-            const logListDiv = document.getElementById('log-list');
             const selectedCourse = document.getElementById('history-course-filter').value;
             
             try {
@@ -652,10 +598,6 @@
         // --- เริ่มต้นแอป ---
         document.addEventListener('DOMContentLoaded', () => {
             showScreen('home-screen');
-            const savedCourse = localStorage.getItem('savedCourse');
-            if (savedCourse) {
-                initSelection();
-            }
         });
     </script>
 </body>
